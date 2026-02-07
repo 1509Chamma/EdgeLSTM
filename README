@@ -1,0 +1,58 @@
+FPGA-Based Compiler for Quantized LSTM Acceleration and Ultra-Low-Latency Time-Series Forecasting in Quantitative Finance
+
+Vision
+Build an open-source compiler that automatically converts trained neural networks  - especially LSTMs and time-series models - into optimized, quantized, and verified FPGA implementations.
+
+This enables low-latency, high-throughput inference directly on trading or risk management hardware, without manual FPGA design.
+
+Current Limitation
+Tools like hls4ml proved the concept but fall short for production use in finance:
+
+Only supports small MLP/CNN models, with minimal LSTM support.
+Limited scalability and poor memory reuse for long time series.
+Dependent on vendor HLS tools, creating portability and licensing costs.
+No integrated verification or regression testing pipeline.
+
+These constraints make it impractical to deploy complex forecasting models (like LSTMs or GRUs) on an FPGA for production trading or risk systems - despite the clear latency advantages.
+
+Our Solution
+An end-to-end compiler integrating:
+
+Architecture Optimization
+Pipelined and fused LSTM/GRU cell generation for streaming inference.
+Automated parallelisation and resource balancing for the target FPGA fabric.
+
+Memory Optimization
+On-chip recurrent state reuse and external memory scheduling
+Mixed-precision quantization tuned to financial model accuracy tolerances
+
+Automated Verification
+HDL testbenches and cocotb regression tests generated automatically.
+Cycle-accurate validation against the original model predictions.
+
+Open HDL Backend
+Vendor-independent HDL output, compatible with both commercial (Xilinx/Intel) and open toolchains (yosys/nextpnr).
+
+![alt text](image.png)
+
+Simple 3-Month Overview
+
+Month 1 – Setup & Model Conversion
+Choose an FPGA platform (Xilinx or Intel) and install tools.
+Study board specs and review existing FPGA LSTM frameworks.
+Convert pre-trained LSTM model to ONNX and apply quantization.
+Create initial HLS design and verify with simulation.
+
+Month 2 – Hardware Implementation & Optimization
+
+Synthesize HLS → RTL and check resource usage.
+Optimize LSTM core (loop unrolling, pipelining, memory).
+Co-simulate design and implement AXI/DMA interfaces.
+Integrate top-level design and generate initial bitstream.
+
+Month 3 – Deployment & Validation
+
+Deploy FPGA bitstream and run inference tests.
+Benchmark latency, throughput, and resource utilization.
+Optimize performance (clock, parallelism, dataflow).
+Document design flow, results, and finalize report.
