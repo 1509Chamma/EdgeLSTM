@@ -25,8 +25,8 @@ jobs:
             cmake --build build
 
             echo '== Format block =='
-            python -m black .
-            python -m ruff check --fix .
+            python3 -m black .
+            python3 -m ruff check --fix .
             if git ls-files '*.cpp' '*.cc' '*.cxx' '*.hpp' '*.hxx' '*.h' | grep -q .; then
               git ls-files '*.cpp' '*.cc' '*.cxx' '*.hpp' '*.hxx' '*.h' \
                 | xargs -r clang-format -i
@@ -55,5 +55,5 @@ jobs:
             pyrefly check
 
             echo '== Test block =='
-            python -m pytest -q || [ \$? -eq 5 ]
+            python3 -m pytest -q || [ \$? -eq 5 ]
           "
