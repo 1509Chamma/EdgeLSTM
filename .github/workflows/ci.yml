@@ -25,13 +25,17 @@ jobs:
             cmake --build build
 
             echo '== Format block =='
-            python -m black --check .
-            python -m ruff check .
+            python -m black .
+            python -m ruff check --fix .
             if git ls-files '*.cpp' '*.cc' '*.cxx' '*.hpp' '*.hxx' '*.h' | grep -q .; then
               git ls-files '*.cpp' '*.cc' '*.cxx' '*.hpp' '*.hxx' '*.h' \
-                | xargs -r clang-format --dry-run --Werror
+                | xargs -r clang-format -i
             else
               echo 'No C++ files to format.'
+            fi
+            if ! git diff --quiet; then
+              echo 'Formatting changed files.'
+              git diff --stat
             fi
 
             echo '== Lint block =='

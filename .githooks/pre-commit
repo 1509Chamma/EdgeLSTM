@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ -z "${VIRTUAL_ENV:-}" ]; then
+  echo "Error: No virtual environment detected. Activate your venv before committing."
+  exit 1
+fi
+
+# Keep requirements.txt in sync with the active venv.
+python -m pip freeze > requirements.txt
+
+if ! git diff --quiet -- requirements.txt; then
+  echo "requirements.txt updated from current venv."
+  git add requirements.txt
+fi
