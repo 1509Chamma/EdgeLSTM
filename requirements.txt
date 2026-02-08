@@ -1,0 +1,14 @@
+black==26.1.0
+click==8.3.1
+colorama==0.4.6
+iniconfig==2.3.0
+mypy_extensions==1.1.0
+packaging==26.0
+pathspec==1.0.4
+platformdirs==4.5.1
+pluggy==1.6.0
+Pygments==2.19.2
+pyrefly==0.51.2
+pytest==9.0.2
+pytokens==0.4.1
+ruff==0.15.0

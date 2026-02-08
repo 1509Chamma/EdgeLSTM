@@ -1,0 +1,46 @@
+name: CodeQL
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    - cron: "0 6 * * 1"
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Detect C/C++ sources
+        id: detect_cpp
+        run: |
+          if git ls-files '*.c' '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx' | grep -q .; then
+            echo "has_cpp=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_cpp=false" >> "$GITHUB_OUTPUT"
+            echo "No C/C++ files detected. Skipping CodeQL analysis."
+          fi
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: cpp
+        if: steps.detect_cpp.outputs.has_cpp == 'true'
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+        if: steps.detect_cpp.outputs.has_cpp == 'true'
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        if: steps.detect_cpp.outputs.has_cpp == 'true'

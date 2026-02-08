@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Build CI image
+        run: docker build -t edgelstm-ci .
+
+      - name: Run CI inside container
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/repo" edgelstm-ci /bin/bash -lc "
+            set -euo pipefail
+            cd /repo
+
+            echo '== Build block =='
+            cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+            cmake --build build
+
+            echo '== Format block =='
+            if find . -type f -name '*.py' | grep -q .; then
+              python3 -m black .
+              python3 -m ruff check --fix .
+            else
+              echo 'No Python files to format.'
+            fi
+            if git ls-files '*.cpp' '*.cc' '*.cxx' '*.hpp' '*.hxx' '*.h' 2>/dev/null | grep -q .; then
+              git ls-files '*.cpp' '*.cc' '*.cxx' '*.hpp' '*.hxx' '*.h' \
+                | xargs -r clang-format -i
+            else
+              echo 'No C++ files to format.'
+            fi
+            if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+              if ! git diff --quiet; then
+                echo 'Formatting changed files.'
+                git diff --stat
+              fi
+            fi
+
+            echo '== Lint block =='
+            if git ls-files '*.cpp' '*.cc' '*.cxx' '*.hpp' '*.hxx' '*.h' 2>/dev/null | grep -q .; then
+              cppcheck --enable=all --error-exitcode=1 --inline-suppr --quiet \
+                -I include -I src $(git ls-files '*.cpp' '*.cc' '*.cxx' '*.hpp' '*.hxx' '*.h')
+              if [ -f build/compile_commands.json ]; then
+                clang-tidy -p build $(git ls-files '*.cpp' '*.cc' '*.cxx' '*.hpp' '*.hxx' '*.h')
+              else
+                echo 'No compile_commands.json; skipping clang-tidy.'
+              fi
+            else
+              echo 'No C++ files to lint.'
+            fi
+
+            echo '== Quality block =='
+            if find . -type f -name '*.py' | grep -q .; then
+              pyrefly check
+            else
+              echo 'No Python files for pyrefly.'
+            fi
+
+            echo '== Test block =='
+            if find . -type f -name 'test_*.py' -o -name '*_test.py' | grep -q .; then
+              python3 -m pytest -q || [ \$? -eq 5 ]
+            else
+              echo 'No Python tests found.'
+            fi
+          "
