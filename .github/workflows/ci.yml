@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Build CI image
+        run: docker build -t edgelstm-ci .
+
+      - name: Run CI inside container
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/repo" edgelstm-ci /bin/bash -lc "
+            set -euo pipefail
+            cd /repo
+
+            echo '== Build block =='
+            cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+            cmake --build build
+
+            echo '== Format block =='
+            python -m black --check .
+            python -m ruff check .
+            if git ls-files '*.cpp' '*.cc' '*.cxx' '*.hpp' '*.hxx' '*.h' | grep -q .; then
+              git ls-files '*.cpp' '*.cc' '*.cxx' '*.hpp' '*.hxx' '*.h' \
+                | xargs -r clang-format --dry-run --Werror
+            else
+              echo 'No C++ files to format.'
+            fi
+
+            echo '== Lint block =='
+            if git ls-files '*.cpp' '*.cc' '*.cxx' '*.hpp' '*.hxx' '*.h' | grep -q .; then
+              cppcheck --enable=all --error-exitcode=1 --inline-suppr --quiet \
+                -I include -I src $(git ls-files '*.cpp' '*.cc' '*.cxx' '*.hpp' '*.hxx' '*.h')
+              if [ -f build/compile_commands.json ]; then
+                clang-tidy -p build $(git ls-files '*.cpp' '*.cc' '*.cxx' '*.hpp' '*.hxx' '*.h')
+              else
+                echo 'No compile_commands.json; skipping clang-tidy.'
+              fi
+            else
+              echo 'No C++ files to lint.'
+            fi
+
+            echo '== Quality block =='
+            pyrefly check
+
+            echo '== Test block =='
+            python -m pytest -q || [ \$? -eq 5 ]
+          "
