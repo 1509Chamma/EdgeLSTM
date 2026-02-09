@@ -5,10 +5,11 @@ class Node:
     Represents a node in the intermediate representation (IR).
     Args:
         node_id (str): The unique identifier for the node.
-        op_type (str): The type of operation represented by the node (e.g., "Add", "MatMul").
+        op_type (str): The type of operation represented by the node.
         inputs (list[str]): A list of input tensor identifiers for the node.
         outputs (list[str]): A list of output tensor identifiers produced by the node.
-        attributes (Optional[dict[str, object]]): An optional dictionary of additional attributes for the node.
+        attributes (Optional[dict[str, object]]): An optional dictionary of additional 
+        attributes for the node.
     """
     def __init__(
         self,
