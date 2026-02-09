@@ -3,7 +3,7 @@ from ir_graph.node import Node
 
 class Graph:
     """
-    Representing a computational graph, consisting of nodes and tensors.
+    Represents a computational graph, consisting of nodes and tensors.
     Args:
         nodes (list[Node]): A list of nodes in the graph.
         tensors (dict[str, Tensor]): A dictionary mapping tensor IDs to Tensor objects.
