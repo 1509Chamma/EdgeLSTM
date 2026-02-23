@@ -36,7 +36,7 @@ class DeviceRegistry:
                         preset_name = preset["name"]
                         self._presets[preset_name] = preset
             except (json.JSONDecodeError, IOError) as e:
-                raise RuntimeError(f"Failed to load preset {file}: {e}")
+                raise RuntimeError(f"Failed to load preset {file}: {e}") from e
     
     def list_presets(self) -> list:
         return sorted(self._presets.keys())
