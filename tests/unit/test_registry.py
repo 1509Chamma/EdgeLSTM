@@ -176,7 +176,7 @@ class TestDeviceRegistryIntegration:
         from pathlib import Path
 
         # Get the project root
-        project_root = Path(__file__).parent.parent.parent.parent
+        project_root = Path(__file__).parent.parent.parent
         config_dir = project_root / "configs" / "devices"
 
         if not config_dir.exists():
