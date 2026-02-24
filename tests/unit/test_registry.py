@@ -104,14 +104,14 @@ class TestDeviceRegistry:
         overrides = {
             "name": "test_device_1_customized",
             "policies": {
-                "target_clock_mhz": 300.0,
+                "target_clock_mhz": 200.0,
             }
         }
 
         device = registry.load_device("test_device_1", overrides=overrides)
 
         assert device.name == "test_device_1_customized"
-        assert device.policies.target_clock_mhz == 300.0
+        assert device.policies.target_clock_mhz == 200.0
         assert device.vendor == "TestVendor"
     
     # Nested overrides test
