@@ -11,13 +11,13 @@ class Value:
     Represents a value in the intermediate representation (IR).
     Args:
         value_id (str): The unique identifier for the value.
-        vtype (ValueType): The type of the value (e.g., "tensor", "scalar").
-        dtype (str): The data type of the value (e.g., "float32", "int64").
-        shape (List[int]): The shape of the value if it is a tensor.
-        axes (List[str]): The names of the axes corresponding to the shape dimensions.
-        layout (Optional[str]): The memory layout of the tensor (e.g., "NCHW", "NHWC").
-        quant (Optional[Dict[str, str]]): Quantization parameters if applicable.
-        producer_op_id (Optional[str]): The ID of the operation that produces this value.
+        vtype (ValueType): The type of the value (e.g., "tensor", "scalar")
+        dtype (str): The data type of the value (e.g., "float32", "int64")
+        shape (List[int]): The shape of the value if it is a tensor
+        axes (List[str]): The names of the axes corresponding to the shape dimensions
+        layout (Optional[str]): The memory layout of the tensor (e.g., "NCHW", "NHWC")
+        quant (Optional[Dict[str, str]]): Quantization parameters if applicable
+        producer_op_id (Optional[str]): The ID of the operation that produces this value
     """
     def __init__(
         self,

@@ -4,13 +4,13 @@ class Op:
     """
     Represents an operation (node) in the intermediate representation (IR) graph.
     Args:
-        op_id (str): The unique identifier for the operation.
-        op_type (str): The type of the operation (e.g., "Conv2D", "ReLU").
-        inputs (List[str]): A list of input value IDs for this operation.
-        outputs (List[str]): A list of output value IDs produced by this operation.
-        attrs (Optional[Dict[str, object]]): A dictionary of attributes for the operation.
-        name (Optional[str]): An optional human-readable name for the operation.
-        source_span (Optional[str]): An optional source code span for debugging purposes.
+        op_id (str): The unique identifier for the operation
+        op_type (str): The type of the operation (e.g., "Conv2D", "ReLU")
+        inputs (List[str]): A list of input value IDs for this operation
+        outputs (List[str]): A list of output value IDs produced by this operation
+        attrs (Optional[Dict[str, object]]): A dictionary of attributes for operation
+        name (Optional[str]): An optional human-readable name for the operation
+        source_span (Optional[str]): An optional source code span for debugging purposes
     """
     def __init__(
         self,

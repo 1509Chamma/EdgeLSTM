@@ -6,11 +6,11 @@ class Graph:
     """
     Represents the entire intermediate representation (IR) graph.
     Args:  
-        values (Dict[str, Value]): A dictionary mapping value IDs to Value objects.
-        ops (Dict[str, Op]): A dictionary mapping operation IDs to Op objects.
-        graph_inputs (List[str]): A list of value IDs that are the inputs to the graph.
-        graph_outputs (List[str]): A list of value IDs that are the outputs of the graph.
-        states (Optional[Dict[str, Value]]): An optional dictionary of state values (e.g., for RNNs).
+        values (Dict[str, Value]): A dictionary mapping value IDs to Value objects
+        ops (Dict[str, Op]): A dictionary mapping operation IDs to Op objects
+        graph_inputs (List[str]): A list of value IDs that are the inputs to the graph
+        graph_outputs (List[str]): A list of value IDs that are the outputs of the graph
+        states (Optional[Dict[str, Value]]): An optional dictionary of state values
     """
     def __init__(
         self,
