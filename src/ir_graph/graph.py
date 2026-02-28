@@ -1,34 +1,39 @@
-from ir_graph.tensor import Tensor
-from ir_graph.node import Node
+from typing import Dict, List, Optional
+from .value import Value
+from .op import Op
 
 class Graph:
     """
-    Represents a computational graph, consisting of nodes and tensors.
-    Args:
-        nodes (list[Node]): A list of nodes in the graph.
-        tensors (dict[str, Tensor]): A dictionary mapping tensor IDs to Tensor objects.
-        input_tensors (list[str]): A list of input tensor IDs.
-        output_tensors (list[str]): A list of output tensor IDs.
+    Represents the entire intermediate representation (IR) graph.
+    Args:  
+        values (Dict[str, Value]): A dictionary mapping value IDs to Value objects.
+        ops (Dict[str, Op]): A dictionary mapping operation IDs to Op objects.
+        graph_inputs (List[str]): A list of value IDs that are the inputs to the graph.
+        graph_outputs (List[str]): A list of value IDs that are the outputs of the graph.
+        states (Optional[Dict[str, Value]]): An optional dictionary of state values (e.g., for RNNs).
     """
     def __init__(
         self,
-        nodes: list[Node],
-        tensors: dict[str, Tensor],
-        input_tensors: list[str],
-        output_tensors: list[str]
+        values: Dict[str, Value],
+        ops: Dict[str, Op],
+        graph_inputs: List[str],
+        graph_outputs: List[str],
+        states: Optional[Dict[str, Value]] = None,
     ) -> None:
-        self.nodes = nodes
-        self.tensors = tensors
-        self.input_tensors = input_tensors
-        self.output_tensors = output_tensors
-    
-    def to_dict(self) -> dict:
+        self.values = values
+        self.ops = ops
+        self.graph_inputs = graph_inputs
+        self.graph_outputs = graph_outputs
+        self.states = states if states is not None else {}
+
+    def to_dict(self) -> Dict:
+        """
+        Convert the entire graph to a JSON-serializable dictionary.
+        """
         return {
-            "input_tensors": self.input_tensors,
-            "output_tensors": self.output_tensors,
-            "nodes": [node.to_dict() for node in self.nodes],
-            "tensors": {
-                tensor_id: tensor.to_dict()
-                for tensor_id, tensor in self.tensors.items()
-            }
+            "values": {vid: v.to_dict() for vid, v in self.values.items()},
+            "ops": {oid: o.to_dict() for oid, o in self.ops.items()},
+            "graph_inputs": self.graph_inputs,
+            "graph_outputs": self.graph_outputs,
+            "states": {sid: s.to_dict() for sid, s in self.states.items()},
         }
