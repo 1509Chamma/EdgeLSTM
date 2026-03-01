@@ -11,4 +11,4 @@ Pygments==2.19.2
 pyrefly==0.51.2
 pytest==9.0.2
 pytokens==0.4.1
-ruff==0.15.0
+ruff==0.15.4
