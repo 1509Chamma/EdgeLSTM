@@ -8,7 +8,7 @@ pathspec==1.0.4
 platformdirs==4.5.1
 pluggy==1.6.0
 Pygments==2.19.2
-pyrefly==0.54.0
+pyrefly==0.55.0
 pytest==9.0.2
 pytokens==0.4.1
 ruff==0.15.4
