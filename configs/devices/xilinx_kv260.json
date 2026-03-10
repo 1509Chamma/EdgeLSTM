@@ -3,24 +3,32 @@
   "vendor": "Xilinx",
   "part_number": "xck26-sfvc784-2LV",
   "resources": {
-    "luts": 70560,
-    "ffs": 141120,
-    "dsps": 240,
+    "luts": 256000,
+    "ffs": 512000,
+    "dsps": 1200,
     "bram_36k": 144,
     "bram_18k": 0
   },
   "memory": {
-    "on_chip_kb": 4608,
-    "external_bandwidth_gbps": 19.2,
+    "on_chip_kb": 2952,
+    "external_bandwidth_gbps": 153.6,
     "external_latency_ns": 50.0
   },
   "io": {
     "pcie_lanes": 0,
-    "pcie_gen": 0,
+    "pcie_gen": 3,
     "other_interfaces": {
-      "ddr4": "2GB SODIMM",
-      "usb3": "2x USB 3.1",
-      "ethernet": "2x1GbE"
+      "ddr4": "4GB non-ECC",
+      "qspi": "512Mb",
+      "boot_sd": "SDHC",
+      "ethernet": "1x 1GbE",
+      "usb": "4x USB 3.0/2.0",
+      "displayport": "1x DP 1.2a",
+      "hdmi": "1x HDMI 1.4",
+      "ias_mipi": "2x",
+      "raspberry_pi_mipi": "1x",
+      "pmod": "1x 12-pin",
+      "isp": "OnSemi AP1302"
     }
   },
   "capabilities": {
@@ -35,6 +43,6 @@
     "max_clock_mhz": 250.0,
     "target_clock_mhz": 200.0,
     "default_precision": "int8",
-    "power_budget_w": 15.0
+    "power_budget_w": 25.0
   }
 }
