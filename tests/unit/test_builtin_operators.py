@@ -1,9 +1,9 @@
 import pytest
 
-from src.ir_graph.builtins import Add, Concat, Conv1D, MatMul, Sum
-from src.ir_graph.op import FPGACost, InvalidOperatorInstanceError
-from src.ir_graph.registry import default_registry
-from src.ir_graph.value import Value, ValueType
+from ir_graph.builtins import Add, Concat, Conv1D, MatMul, Sum
+from ir_graph.op import FPGACost, InvalidOperatorInstanceError
+from ir_graph.registry import default_registry
+from ir_graph.value import Value, ValueType
 
 
 def make_tensor(value_id, shape, axes=None, dtype="float32"):

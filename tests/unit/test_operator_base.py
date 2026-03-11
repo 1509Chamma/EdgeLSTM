@@ -1,28 +1,31 @@
 import re
+from collections.abc import Mapping
+from typing import Any, cast
 
 import pytest
 
-from src.ir_graph.op import (
+from ir_graph.op import (
     FPGACost,
     InvalidOperatorDefinitionError,
     InvalidOperatorInstanceError,
     Operator,
 )
+from ir_graph.value import Value
 
 
 class DummyOperator(Operator):
     OP_TYPE = "Dummy"
 
-    def validate(self, values):
+    def validate(self, values: Mapping[str, Value]) -> None:
         return None
 
-    def estimate_fpga_cost(self, values):
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
         return FPGACost(latency_cycles=4, initiation_interval=1, dsp=1, lut=8, ff=16)
 
-    def hls_template_path(self):
+    def hls_template_path(self) -> str:
         return "dummy.cpp"
 
-    def hls_context(self, values):
+    def hls_context(self, values: Mapping[str, Value]) -> dict[str, object]:
         return {"op_id": self.op_id, "inputs": self.inputs, "outputs": self.outputs}
 
 
@@ -48,24 +51,28 @@ def test_operator_to_dict_preserves_existing_schema():
 
 
 def test_operator_is_abstract():
+    abstract_operator = cast(Any, Operator)
+
     with pytest.raises(TypeError):
-        Operator(op_id="op_0", inputs=["x"], outputs=["y"])
+        abstract_operator(op_id="op_0", inputs=["x"], outputs=["y"])
 
 
 def test_concrete_operator_requires_non_empty_op_type():
     with pytest.raises(InvalidOperatorDefinitionError):
 
         class MissingOpTypeOperator(Operator):
-            def validate(self, values):
+            def validate(self, values: Mapping[str, Value]) -> None:
                 return None
 
-            def estimate_fpga_cost(self, values):
+            def estimate_fpga_cost(
+                self, values: Mapping[str, Value]
+            ) -> FPGACost:
                 return FPGACost(latency_cycles=1)
 
-            def hls_template_path(self):
+            def hls_template_path(self) -> str:
                 return "missing.cpp"
 
-            def hls_context(self, values):
+            def hls_context(self, values: Mapping[str, Value]) -> dict[str, object]:
                 return {}
 
 

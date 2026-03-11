@@ -1,50 +1,53 @@
 from abc import abstractmethod
+from collections.abc import Mapping
+from typing import Any, cast
 
 import pytest
 
-from src.ir_graph.builtins import BUILTIN_OPERATOR_TYPES
-from src.ir_graph.op import (
+from ir_graph.builtins import BUILTIN_OPERATOR_TYPES
+from ir_graph.op import (
     FPGACost,
     InvalidOperatorDefinitionError,
     Operator,
 )
-from src.ir_graph.registry import (
+from ir_graph.registry import (
     DuplicateOperatorError,
     OperatorRegistry,
     UnknownOperatorError,
     default_registry,
 )
+from ir_graph.value import Value
 
 
 class ScaleOperator(Operator):
     OP_TYPE = "Scale"
 
-    def validate(self, values):
+    def validate(self, values: Mapping[str, Value]) -> None:
         return None
 
-    def estimate_fpga_cost(self, values):
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
         return FPGACost(latency_cycles=2, dsp=1)
 
-    def hls_template_path(self):
+    def hls_template_path(self) -> str:
         return "scale.cpp"
 
-    def hls_context(self, values):
+    def hls_context(self, values: Mapping[str, Value]) -> dict[str, object]:
         return {"factor": self.attrs.get("factor", 1)}
 
 
 class BiasOperator(Operator):
     OP_TYPE = "Bias"
 
-    def validate(self, values):
+    def validate(self, values: Mapping[str, Value]) -> None:
         return None
 
-    def estimate_fpga_cost(self, values):
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
         return FPGACost(latency_cycles=1, lut=4)
 
-    def hls_template_path(self):
+    def hls_template_path(self) -> str:
         return "bias.cpp"
 
-    def hls_context(self, values):
+    def hls_context(self, values: Mapping[str, Value]) -> dict[str, object]:
         return {"bias": self.attrs.get("bias", 0)}
 
 
@@ -55,16 +58,16 @@ class AbstractRegisteredOperator(Operator):
     def extra(self):
         """Keep the subclass abstract for registration validation."""
 
-    def validate(self, values):
+    def validate(self, values: Mapping[str, Value]) -> None:
         return None
 
-    def estimate_fpga_cost(self, values):
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
         return FPGACost(latency_cycles=1)
 
-    def hls_template_path(self):
+    def hls_template_path(self) -> str:
         return "abstract.cpp"
 
-    def hls_context(self, values):
+    def hls_context(self, values: Mapping[str, Value]) -> dict[str, object]:
         return {}
 
 
@@ -133,12 +136,13 @@ def test_registry_raises_clear_error_for_unknown_operator_lookup_and_create():
 
 def test_registry_rejects_non_operator_classes():
     registry = OperatorRegistry()
+    invalid_cls = cast(Any, dict)
 
     with pytest.raises(
         InvalidOperatorDefinitionError,
         match="operator_cls must be a concrete Operator subclass",
     ):
-        registry.register(dict)
+        registry.register(invalid_cls)
 
 
 def test_registry_rejects_abstract_operator_classes():

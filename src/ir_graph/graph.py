@@ -45,12 +45,30 @@ class Graph:
         self._store_operator(operator.op_id, operator)
         return operator
 
-    def create_operator(self, op_type: str, **node_kwargs: object) -> Operator:
+    def create_operator(
+        self,
+        op_type: str,
+        *,
+        op_id: str,
+        inputs: list[str],
+        outputs: list[str],
+        attrs: dict[str, object] | None = None,
+        name: str | None = None,
+        source_span: str | None = None,
+    ) -> Operator:
         """
         Construct an operator from the graph registry and store it in the graph.
         """
 
-        operator = self.registry.create(op_type, **node_kwargs)
+        operator = self.registry.create(
+            op_type,
+            op_id=op_id,
+            inputs=inputs,
+            outputs=outputs,
+            attrs=attrs,
+            name=name,
+            source_span=source_span,
+        )
         return self.add_operator(operator)
 
     def to_dict(self) -> dict[str, object]:

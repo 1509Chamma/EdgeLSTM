@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import re
 from collections.abc import Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, TypeGuard
 
 from .op import FPGACost, InvalidOperatorInstanceError, Operator
 from .value import Value, ValueType
@@ -28,6 +28,14 @@ def _shape_product(shape: Sequence[int]) -> int:
             )
         product *= dim
     return product
+
+
+def _is_int_sequence(value: object) -> TypeGuard[Sequence[int]]:
+    return (
+        isinstance(value, Sequence)
+        and not isinstance(value, str)
+        and all(isinstance(item, int) for item in value)
+    )
 
 
 class BuiltinOperator(Operator):
@@ -134,24 +142,41 @@ class BuiltinOperator(Operator):
             )
         return normalized
 
-    def _require_attr(
-        self, name: str, expected_type: type | tuple[type, ...]
-    ) -> object:
+    def _require_int_attr(self, name: str) -> int:
+        value = self.attrs.get(name)
+        if not isinstance(value, int):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires '{name}' to be of type int"
+            )
+        return value
+
+    def _optional_int_attr(self, name: str, default: int) -> int:
+        value = self.attrs.get(name, default)
+        if not isinstance(value, int):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires '{name}' to be of type int"
+            )
+        return value
+
+    def _optional_bool_attr(self, name: str, default: bool) -> bool:
+        value = self.attrs.get(name, default)
+        if not isinstance(value, bool):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires '{name}' to be of type bool"
+            )
+        return value
+
+    def _require_int_sequence_attr(self, name: str) -> list[int]:
         if name not in self.attrs:
             raise InvalidOperatorInstanceError(
                 f"{self.op_type} requires '{name}' in attrs"
             )
         value = self.attrs[name]
-        if not isinstance(value, expected_type):
-            expected_name = (
-                expected_type.__name__
-                if isinstance(expected_type, type)
-                else ", ".join(cls.__name__ for cls in expected_type)
-            )
+        if not _is_int_sequence(value):
             raise InvalidOperatorInstanceError(
-                f"{self.op_type} requires '{name}' to be of type {expected_name}"
+                f"{self.op_type} requires '{name}' to be a sequence of integers"
             )
-        return value
+        return list(value)
 
     def _match_output(
         self,
@@ -279,7 +304,7 @@ class ReductionOperator(BuiltinOperator):
 
         if isinstance(axis_value, int):
             return [self._resolve_axis(axis_value, len(input_value.shape))]
-        if not isinstance(axis_value, Sequence) or isinstance(axis_value, str):
+        if not _is_int_sequence(axis_value):
             raise InvalidOperatorInstanceError(
                 f"{self.op_type} requires 'axis' to be an integer "
                 f"or sequence of integers"
@@ -301,11 +326,7 @@ class ReductionOperator(BuiltinOperator):
         self._require_tensor(input_value, "input[0]")
 
         reduction_axes = self._reduction_axes(input_value)
-        keepdims = self.attrs.get("keepdims", False)
-        if not isinstance(keepdims, bool):
-            raise InvalidOperatorInstanceError(
-                f"{self.op_type} requires 'keepdims' to be a boolean"
-            )
+        keepdims = self._optional_bool_attr("keepdims", False)
 
         if keepdims:
             expected_shape = [
@@ -409,7 +430,7 @@ class Softmax(BuiltinOperator):
         self._require_output_count(1)
         input_value = self._input_values(values)[0]
         self._require_tensor(input_value, "input[0]")
-        axis = self.attrs.get("axis", -1)
+        axis = self._optional_int_attr("axis", -1)
         self._resolve_axis(axis, len(input_value.shape))
         self._match_output(
             values,
@@ -497,11 +518,7 @@ class Transpose(BuiltinOperator):
         self._require_output_count(1)
         input_value = self._input_values(values)[0]
         self._require_tensor(input_value, "input[0]")
-        perm = self._require_attr("perm", Sequence)
-        if isinstance(perm, str):
-            raise InvalidOperatorInstanceError(
-                f"{self.op_type} requires 'perm' to be a sequence of integers"
-            )
+        perm = self._require_int_sequence_attr("perm")
         if len(perm) != len(input_value.shape):
             raise InvalidOperatorInstanceError(
                 f"{self.op_type} requires 'perm' length {len(input_value.shape)}, "
@@ -546,12 +563,8 @@ class Reshape(BuiltinOperator):
         self._require_output_count(1)
         input_value = self._input_values(values)[0]
         self._require_tensor(input_value, "input[0]")
-        target_shape = self._require_attr("shape", Sequence)
-        if isinstance(target_shape, str):
-            raise InvalidOperatorInstanceError(
-                f"{self.op_type} requires 'shape' to be a sequence of integers"
-            )
-        if any(not isinstance(dim, int) or dim <= 0 for dim in target_shape):
+        target_shape = self._require_int_sequence_attr("shape")
+        if any(dim <= 0 for dim in target_shape):
             raise InvalidOperatorInstanceError(
                 f"{self.op_type} requires 'shape' to contain positive integers"
             )
@@ -599,10 +612,7 @@ class Concat(BuiltinOperator):
 
         self._require_same_dtype(input_values)
         base = input_values[0]
-        axis = self._resolve_axis(
-            self._require_attr("axis", int),
-            len(base.shape),
-        )
+        axis = self._resolve_axis(self._require_int_attr("axis"), len(base.shape))
 
         expected_shape = list(base.shape)
         expected_shape[axis] = 0
@@ -652,13 +662,13 @@ class Slice(BuiltinOperator):
         input_value = self._input_values(values)[0]
         self._require_tensor(input_value, "input[0]")
         axis = self._resolve_axis(
-            self._require_attr("axis", int),
+            self._require_int_attr("axis"),
             len(input_value.shape),
         )
-        start = self._require_attr("start", int)
-        end = self._require_attr("end", int)
-        step = self.attrs.get("step", 1)
-        if not isinstance(step, int) or step <= 0:
+        start = self._require_int_attr("start")
+        end = self._require_int_attr("end")
+        step = self._optional_int_attr("step", 1)
+        if step <= 0:
             raise InvalidOperatorInstanceError(
                 f"{self.op_type} requires 'step' to be a positive integer"
             )
@@ -697,7 +707,7 @@ class LayerNorm(BuiltinOperator):
         self._require_output_count(1)
         input_value = self._input_values(values)[0]
         self._require_tensor(input_value, "input[0]")
-        axis = self.attrs.get("axis", -1)
+        axis = self._optional_int_attr("axis", -1)
         self._resolve_axis(axis, len(input_value.shape))
         self._match_output(
             values,
@@ -755,15 +765,15 @@ class Conv1D(BuiltinOperator):
                     f"{self.op_type} expects bias shape to match output channels"
                 )
 
-        stride = self.attrs.get("stride", 1)
-        padding = self.attrs.get("padding", 0)
-        dilation = self.attrs.get("dilation", 1)
-        for attr_name, attr_value in {
-            "stride": stride,
-            "padding": padding,
-            "dilation": dilation,
-        }.items():
-            if not isinstance(attr_value, int) or attr_value < 0:
+        stride = self._optional_int_attr("stride", 1)
+        padding = self._optional_int_attr("padding", 0)
+        dilation = self._optional_int_attr("dilation", 1)
+        for attr_name, attr_value in (
+            ("stride", stride),
+            ("padding", padding),
+            ("dilation", dilation),
+        ):
+            if attr_value < 0:
                 raise InvalidOperatorInstanceError(
                     f"{self.op_type} requires '{attr_name}' "
                     f"to be a non-negative integer"
@@ -819,16 +829,12 @@ class Pad(BuiltinOperator):
         self._require_output_count(1)
         input_value = self._input_values(values)[0]
         self._require_tensor(input_value, "input[0]")
-        pads = self._require_attr("pads", Sequence)
-        if isinstance(pads, str):
-            raise InvalidOperatorInstanceError(
-                f"{self.op_type} requires 'pads' to be a sequence of integers"
-            )
+        pads = self._require_int_sequence_attr("pads")
         if len(pads) != len(input_value.shape) * 2:
             raise InvalidOperatorInstanceError(
                 f"{self.op_type} requires 'pads' length {len(input_value.shape) * 2}"
             )
-        if any(not isinstance(pad, int) or pad < 0 for pad in pads):
+        if any(pad < 0 for pad in pads):
             raise InvalidOperatorInstanceError(
                 f"{self.op_type} requires all pad values to be non-negative integers"
             )
@@ -866,9 +872,9 @@ class Shift(BuiltinOperator):
         self._require_output_count(1)
         input_value = self._input_values(values)[0]
         self._require_tensor(input_value, "input[0]")
-        axis = self._require_attr("axis", int)
+        axis = self._require_int_attr("axis")
         self._resolve_axis(axis, len(input_value.shape))
-        amount = self._require_attr("amount", int)
+        amount = self._require_int_attr("amount")
         if amount == 0:
             raise InvalidOperatorInstanceError(
                 f"{self.op_type} requires non-zero 'amount'"

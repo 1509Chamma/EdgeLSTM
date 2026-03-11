@@ -1,40 +1,43 @@
+from collections.abc import Mapping
+from typing import cast
+
 import pytest
 
-from src.ir_graph.graph import Graph
-from src.ir_graph.op import FPGACost, Operator
-from src.ir_graph.registry import OperatorRegistry
-from src.ir_graph.value import Value, ValueType
+from ir_graph.graph import Graph
+from ir_graph.op import FPGACost, Operator
+from ir_graph.registry import OperatorRegistry
+from ir_graph.value import Value, ValueType
 
 
 class PassThroughOperator(Operator):
     OP_TYPE = "PassThrough"
 
-    def validate(self, values):
+    def validate(self, values: Mapping[str, Value]) -> None:
         return None
 
-    def estimate_fpga_cost(self, values):
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
         return FPGACost(latency_cycles=1)
 
-    def hls_template_path(self):
+    def hls_template_path(self) -> str:
         return "pass_through.cpp"
 
-    def hls_context(self, values):
+    def hls_context(self, values: Mapping[str, Value]) -> dict[str, object]:
         return {"input": self.inputs[0], "output": self.outputs[0]}
 
 
 class ShiftOperator(Operator):
     OP_TYPE = "Shift"
 
-    def validate(self, values):
+    def validate(self, values: Mapping[str, Value]) -> None:
         return None
 
-    def estimate_fpga_cost(self, values):
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
         return FPGACost(latency_cycles=2, ff=4)
 
-    def hls_template_path(self):
+    def hls_template_path(self) -> str:
         return "shift.cpp"
 
-    def hls_context(self, values):
+    def hls_context(self, values: Mapping[str, Value]) -> dict[str, object]:
         return {"shift": self.attrs.get("amount", 0)}
 
 
@@ -116,8 +119,10 @@ def test_graph_create_operator_uses_registry_and_stores_result():
 
 
 def test_graph_rejects_non_operator_instances():
+    invalid_ops = cast(dict[str, Operator], {"bad_0": object()})
+
     with pytest.raises(TypeError, match="ops must contain Operator instances"):
-        Graph(values={}, ops={"bad_0": object()}, graph_inputs=[], graph_outputs=[])
+        Graph(values={}, ops=invalid_ops, graph_inputs=[], graph_outputs=[])
 
 
 def test_graph_rejects_mismatched_operator_dictionary_keys():

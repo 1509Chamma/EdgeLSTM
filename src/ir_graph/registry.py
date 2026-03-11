@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 import inspect
-from typing import TypeVar
 
 from .op import InvalidOperatorDefinitionError, Operator, OperatorError
-
-OperatorT = TypeVar("OperatorT", bound=Operator)
 
 
 class OperatorRegistryError(OperatorError):
@@ -26,7 +23,7 @@ class OperatorRegistry:
     def __init__(self) -> None:
         self._operators: dict[str, type[Operator]] = {}
 
-    def register(self, operator_cls: type[OperatorT]) -> type[OperatorT]:
+    def register(self, operator_cls: type[Operator]) -> type[Operator]:
         if not inspect.isclass(operator_cls) or not issubclass(operator_cls, Operator):
             raise InvalidOperatorDefinitionError(
                 "operator_cls must be a concrete Operator subclass"
@@ -53,9 +50,26 @@ class OperatorRegistry:
                 f"operator type '{op_type}' is not registered"
             ) from exc
 
-    def create(self, op_type: str, **node_kwargs: object) -> Operator:
+    def create(
+        self,
+        op_type: str,
+        *,
+        op_id: str,
+        inputs: list[str],
+        outputs: list[str],
+        attrs: dict[str, object] | None = None,
+        name: str | None = None,
+        source_span: str | None = None,
+    ) -> Operator:
         operator_cls = self.get(op_type)
-        return operator_cls(**node_kwargs)
+        return operator_cls(
+            op_id=op_id,
+            inputs=inputs,
+            outputs=outputs,
+            attrs=attrs,
+            name=name,
+            source_span=source_span,
+        )
 
     def list_registered(self) -> list[str]:
         return sorted(self._operators)

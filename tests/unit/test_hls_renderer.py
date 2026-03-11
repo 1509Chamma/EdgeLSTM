@@ -1,17 +1,18 @@
 import re
+from collections.abc import Mapping
 from pathlib import Path
 
 import pytest
 
-from src.ir_graph.builtins import Add
-from src.ir_graph.hls import (
+from ir_graph.builtins import Add
+from ir_graph.hls import (
     HLSTemplateNotFoundError,
     HLSTemplateRenderError,
     render_operator_hls,
     resolve_hls_template_path,
 )
-from src.ir_graph.op import FPGACost, Operator
-from src.ir_graph.value import Value, ValueType
+from ir_graph.op import FPGACost, Operator
+from ir_graph.value import Value, ValueType
 
 
 def make_tensor(value_id, shape, axes=None, dtype="float32"):
@@ -29,48 +30,48 @@ def make_tensor(value_id, shape, axes=None, dtype="float32"):
 class CustomTemplateOperator(Operator):
     OP_TYPE = "CustomTemplate"
 
-    def validate(self, values):
+    def validate(self, values: Mapping[str, Value]) -> None:
         return None
 
-    def estimate_fpga_cost(self, values):
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
         return FPGACost(latency_cycles=1)
 
-    def hls_template_path(self):
+    def hls_template_path(self) -> str:
         return "templates/custom_template.cpp.tpl"
 
-    def hls_context(self, values):
+    def hls_context(self, values: Mapping[str, Value]) -> dict[str, object]:
         return {"op_id": self.op_id, "op_type": self.op_type, "scale": 7}
 
 
 class MissingTemplateOperator(Operator):
     OP_TYPE = "MissingTemplate"
 
-    def validate(self, values):
+    def validate(self, values: Mapping[str, Value]) -> None:
         return None
 
-    def estimate_fpga_cost(self, values):
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
         return FPGACost(latency_cycles=1)
 
-    def hls_template_path(self):
+    def hls_template_path(self) -> str:
         return "templates/not_here.cpp.tpl"
 
-    def hls_context(self, values):
+    def hls_context(self, values: Mapping[str, Value]) -> dict[str, object]:
         return {"op_id": self.op_id, "op_type": self.op_type}
 
 
 class MissingContextOperator(Operator):
     OP_TYPE = "MissingContext"
 
-    def validate(self, values):
+    def validate(self, values: Mapping[str, Value]) -> None:
         return None
 
-    def estimate_fpga_cost(self, values):
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
         return FPGACost(latency_cycles=1)
 
-    def hls_template_path(self):
+    def hls_template_path(self) -> str:
         return "templates/missing_context.cpp.tpl"
 
-    def hls_context(self, values):
+    def hls_context(self, values: Mapping[str, Value]) -> dict[str, object]:
         return {"op_id": self.op_id, "op_type": self.op_type}
 
 

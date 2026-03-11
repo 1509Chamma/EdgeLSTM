@@ -1,11 +1,13 @@
 import math
+from collections.abc import Mapping
+from typing import cast
 
-from src.ir_graph.builtins import register_builtin_operators
-from src.ir_graph.graph import Graph
-from src.ir_graph.hls import render_operator_hls
-from src.ir_graph.op import FPGACost, InvalidOperatorInstanceError, Operator
-from src.ir_graph.registry import OperatorRegistry
-from src.ir_graph.value import Value, ValueType
+from ir_graph.builtins import register_builtin_operators
+from ir_graph.graph import Graph
+from ir_graph.hls import render_operator_hls
+from ir_graph.op import FPGACost, InvalidOperatorInstanceError, Operator
+from ir_graph.registry import OperatorRegistry
+from ir_graph.value import Value, ValueType
 
 
 def make_tensor(value_id, shape, axes=None, dtype="float32"):
@@ -23,7 +25,7 @@ def make_tensor(value_id, shape, axes=None, dtype="float32"):
 class CustomScaleOperator(Operator):
     OP_TYPE = "CustomScale"
 
-    def validate(self, values):
+    def validate(self, values: Mapping[str, Value]) -> None:
         if len(self.inputs) != 1 or len(self.outputs) != 1:
             raise InvalidOperatorInstanceError(
                 "CustomScale expects exactly 1 input and 1 output"
@@ -56,7 +58,7 @@ class CustomScaleOperator(Operator):
                 "CustomScale requires input and output dtypes to match"
             )
 
-    def estimate_fpga_cost(self, values):
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
         work = math.prod(values[self.outputs[0]].shape)
         return FPGACost(
             latency_cycles=work,
@@ -67,10 +69,10 @@ class CustomScaleOperator(Operator):
             metadata={"heuristic": "custom_scale"},
         )
 
-    def hls_template_path(self):
+    def hls_template_path(self) -> str:
         return "templates/custom_scale.cpp.tpl"
 
-    def hls_context(self, values):
+    def hls_context(self, values: Mapping[str, Value]) -> dict[str, object]:
         return {
             "op_id": self.op_id,
             "op_type": self.op_type,
@@ -113,10 +115,11 @@ def test_operator_registry_flow_serializes_graph_estimates_cost_and_renders_hls(
     )
 
     serialized = graph.to_dict()
+    serialized_ops = cast(dict[str, dict[str, object]], serialized["ops"])
     assert serialized["graph_inputs"] == ["x", "bias", "gain"]
     assert serialized["graph_outputs"] == ["scaled_out"]
-    assert serialized["ops"]["add_0"]["op_type"] == "Add"
-    assert serialized["ops"]["mul_0"]["inputs"] == ["sum_out", "gain"]
+    assert serialized_ops["add_0"]["op_type"] == "Add"
+    assert serialized_ops["mul_0"]["inputs"] == ["sum_out", "gain"]
 
     assert add_operator.estimate_fpga_cost(values) == FPGACost(
         latency_cycles=4,
