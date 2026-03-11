@@ -1,0 +1,927 @@
+from __future__ import annotations
+
+import math
+import re
+from collections.abc import Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, ClassVar
+
+from .op import FPGACost, InvalidOperatorInstanceError, Operator
+from .value import Value, ValueType
+
+if TYPE_CHECKING:
+    from .registry import OperatorRegistry
+
+
+def _snake_case(name: str) -> str:
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+
+def _shape_product(shape: Sequence[int]) -> int:
+    if not shape:
+        return 1
+
+    product = 1
+    for dim in shape:
+        if dim <= 0:
+            raise InvalidOperatorInstanceError(
+                f"shape dimensions must be positive integers, got {list(shape)}"
+            )
+        product *= dim
+    return product
+
+
+class BuiltinOperator(Operator):
+    """Shared helpers for built-in primitive operators."""
+
+    HLS_TEMPLATE_DIR: ClassVar[str] = "hls/operators"
+
+    def hls_template_path(self) -> str:
+        return f"{self.HLS_TEMPLATE_DIR}/{_snake_case(self.op_type)}.cpp.tpl"
+
+    def hls_context(self, values: Mapping[str, Value]) -> dict[str, object]:
+        input_values = [
+            self._lookup_value(values, value_id, "input") for value_id in self.inputs
+        ]
+        output_values = [
+            self._lookup_value(values, value_id, "output") for value_id in self.outputs
+        ]
+        return {
+            "op_id": self.op_id,
+            "op_type": self.op_type,
+            "inputs": list(self.inputs),
+            "outputs": list(self.outputs),
+            "attrs": dict(self.attrs),
+            "input_shapes": [value.shape for value in input_values],
+            "output_shapes": [value.shape for value in output_values],
+        }
+
+    def _require_input_count(self, allowed: int | Iterable[int]) -> None:
+        expected = {allowed} if isinstance(allowed, int) else set(allowed)
+        if len(self.inputs) not in expected:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} expects {self._format_expected(expected)} inputs, "
+                f"got {len(self.inputs)}"
+            )
+
+    def _require_output_count(self, allowed: int | Iterable[int]) -> None:
+        expected = {allowed} if isinstance(allowed, int) else set(allowed)
+        if len(self.outputs) not in expected:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} expects {self._format_expected(expected)} outputs, "
+                f"got {len(self.outputs)}"
+            )
+
+    @staticmethod
+    def _format_expected(expected: set[int]) -> str:
+        ordered = sorted(expected)
+        if len(ordered) == 1:
+            return str(ordered[0])
+        return "one of " + ", ".join(str(value) for value in ordered)
+
+    def _lookup_value(
+        self, values: Mapping[str, Value], value_id: str, role: str
+    ) -> Value:
+        try:
+            return values[value_id]
+        except KeyError as exc:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} references unknown {role} value '{value_id}'"
+            ) from exc
+
+    def _input_values(self, values: Mapping[str, Value]) -> list[Value]:
+        return [
+            self._lookup_value(values, value_id, "input") for value_id in self.inputs
+        ]
+
+    def _output_value(self, values: Mapping[str, Value]) -> Value:
+        self._require_output_count(1)
+        return self._lookup_value(values, self.outputs[0], "output")
+
+    def _require_tensor(self, value: Value, label: str) -> None:
+        if value.vtype is not ValueType.TENSOR:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} expects {label} to be a tensor, "
+                f"got {value.vtype.value}"
+            )
+
+    def _require_scalar_or_tensor(self, value: Value, label: str) -> None:
+        if value.vtype not in (ValueType.SCALAR, ValueType.TENSOR):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} expects {label} to be a scalar or tensor, "
+                f"got {value.vtype.value}"
+            )
+
+    def _require_same_dtype(self, values: Sequence[Value]) -> None:
+        if not values:
+            return
+
+        first_dtype = values[0].dtype
+        for value in values[1:]:
+            if value.dtype != first_dtype:
+                raise InvalidOperatorInstanceError(
+                    f"{self.op_type} requires all values to share dtype {first_dtype}"
+                )
+
+    def _resolve_axis(self, axis: int, rank: int, attr_name: str = "axis") -> int:
+        if not isinstance(axis, int):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires '{attr_name}' to be an integer"
+            )
+        normalized = axis if axis >= 0 else rank + axis
+        if normalized < 0 or normalized >= rank:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} axis {axis} is out of range for rank {rank}"
+            )
+        return normalized
+
+    def _require_attr(
+        self, name: str, expected_type: type | tuple[type, ...]
+    ) -> object:
+        if name not in self.attrs:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires '{name}' in attrs"
+            )
+        value = self.attrs[name]
+        if not isinstance(value, expected_type):
+            expected_name = (
+                expected_type.__name__
+                if isinstance(expected_type, type)
+                else ", ".join(cls.__name__ for cls in expected_type)
+            )
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires '{name}' to be of type {expected_name}"
+            )
+        return value
+
+    def _match_output(
+        self,
+        values: Mapping[str, Value],
+        *,
+        shape: Sequence[int],
+        axes: Sequence[str],
+        dtype: str,
+        vtype: ValueType,
+    ) -> Value:
+        output = self._output_value(values)
+        if output.shape != list(shape):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} expects output shape {list(shape)}, got {output.shape}"
+            )
+        if output.axes != list(axes):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} expects output axes {list(axes)}, got {output.axes}"
+            )
+        if output.dtype != dtype:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} expects output dtype {dtype}, got {output.dtype}"
+            )
+        if output.vtype is not vtype:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} expects output value type {vtype.value}, "
+                f"got {output.vtype.value}"
+            )
+        return output
+
+    def _output_work(self, values: Mapping[str, Value]) -> int:
+        return _shape_product(self._output_value(values).shape)
+
+
+class UnaryElementwiseOperator(BuiltinOperator):
+    OP_TYPE = "_UnaryElementwiseBase"
+
+    def validate(self, values: Mapping[str, Value]) -> None:
+        self._require_input_count(1)
+        self._require_output_count(1)
+        input_value = self._input_values(values)[0]
+        self._require_scalar_or_tensor(input_value, "input[0]")
+        output_type = (
+            ValueType.SCALAR
+            if input_value.vtype is ValueType.SCALAR
+            else ValueType.TENSOR
+        )
+        self._match_output(
+            values,
+            shape=input_value.shape,
+            axes=input_value.axes,
+            dtype=input_value.dtype,
+            vtype=output_type,
+        )
+
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
+        work = self._output_work(values)
+        return FPGACost(
+            latency_cycles=max(1, work),
+            initiation_interval=1,
+            lut=max(1, work),
+            ff=max(1, work),
+            metadata={"heuristic": "unary_elementwise"},
+        )
+
+
+class BinaryElementwiseOperator(BuiltinOperator):
+    OP_TYPE = "_BinaryElementwiseBase"
+
+    def validate(self, values: Mapping[str, Value]) -> None:
+        self._require_input_count(2)
+        self._require_output_count(1)
+        lhs, rhs = self._input_values(values)
+        self._require_scalar_or_tensor(lhs, "input[0]")
+        self._require_scalar_or_tensor(rhs, "input[1]")
+        self._require_same_dtype((lhs, rhs))
+
+        if lhs.vtype is ValueType.SCALAR and rhs.vtype is ValueType.SCALAR:
+            expected_shape = []
+            expected_axes = []
+            expected_type = ValueType.SCALAR
+        elif lhs.vtype is ValueType.SCALAR:
+            expected_shape = rhs.shape
+            expected_axes = rhs.axes
+            expected_type = rhs.vtype
+        elif rhs.vtype is ValueType.SCALAR:
+            expected_shape = lhs.shape
+            expected_axes = lhs.axes
+            expected_type = lhs.vtype
+        elif lhs.shape == rhs.shape and lhs.axes == rhs.axes:
+            expected_shape = lhs.shape
+            expected_axes = lhs.axes
+            expected_type = lhs.vtype
+        else:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires matching tensor shapes or scalar broadcasting"
+            )
+
+        self._match_output(
+            values,
+            shape=expected_shape,
+            axes=expected_axes,
+            dtype=lhs.dtype,
+            vtype=expected_type,
+        )
+
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
+        work = self._output_work(values)
+        return FPGACost(
+            latency_cycles=max(1, work),
+            initiation_interval=1,
+            lut=max(1, work),
+            ff=max(1, work),
+            metadata={"heuristic": "binary_elementwise"},
+        )
+
+
+class ReductionOperator(BuiltinOperator):
+    OP_TYPE = "_ReductionBase"
+
+    def _reduction_axes(self, input_value: Value) -> list[int]:
+        axis_value = self.attrs.get("axis")
+        if axis_value is None:
+            return list(range(len(input_value.shape)))
+
+        if isinstance(axis_value, int):
+            return [self._resolve_axis(axis_value, len(input_value.shape))]
+        if not isinstance(axis_value, Sequence) or isinstance(axis_value, str):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires 'axis' to be an integer "
+                f"or sequence of integers"
+            )
+
+        normalized = [
+            self._resolve_axis(axis, len(input_value.shape)) for axis in axis_value
+        ]
+        if len(normalized) != len(set(normalized)):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires unique reduction axes"
+            )
+        return sorted(normalized)
+
+    def validate(self, values: Mapping[str, Value]) -> None:
+        self._require_input_count(1)
+        self._require_output_count(1)
+        input_value = self._input_values(values)[0]
+        self._require_tensor(input_value, "input[0]")
+
+        reduction_axes = self._reduction_axes(input_value)
+        keepdims = self.attrs.get("keepdims", False)
+        if not isinstance(keepdims, bool):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires 'keepdims' to be a boolean"
+            )
+
+        if keepdims:
+            expected_shape = [
+                1 if idx in reduction_axes else dim
+                for idx, dim in enumerate(input_value.shape)
+            ]
+            expected_axes = list(input_value.axes)
+            expected_type = ValueType.TENSOR
+        else:
+            expected_shape = [
+                dim
+                for idx, dim in enumerate(input_value.shape)
+                if idx not in reduction_axes
+            ]
+            expected_axes = [
+                axis_name
+                for idx, axis_name in enumerate(input_value.axes)
+                if idx not in reduction_axes
+            ]
+            expected_type = ValueType.TENSOR if expected_shape else ValueType.SCALAR
+
+        self._match_output(
+            values,
+            shape=expected_shape,
+            axes=expected_axes,
+            dtype=input_value.dtype,
+            vtype=expected_type,
+        )
+
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
+        input_value = self._input_values(values)[0]
+        work = _shape_product(input_value.shape)
+        return FPGACost(
+            latency_cycles=max(1, work),
+            initiation_interval=1,
+            lut=max(1, work),
+            ff=max(1, work // 2),
+            metadata={"heuristic": "reduction"},
+        )
+
+
+class Add(BinaryElementwiseOperator):
+    OP_TYPE = "Add"
+
+
+class Sub(BinaryElementwiseOperator):
+    OP_TYPE = "Sub"
+
+
+class Mul(BinaryElementwiseOperator):
+    OP_TYPE = "Mul"
+
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
+        work = self._output_work(values)
+        return FPGACost(
+            latency_cycles=max(1, work + 1),
+            initiation_interval=1,
+            dsp=max(1, work),
+            lut=max(1, work),
+            ff=max(1, work),
+            metadata={"heuristic": "binary_mul"},
+        )
+
+
+class Div(BinaryElementwiseOperator):
+    OP_TYPE = "Div"
+
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
+        work = self._output_work(values)
+        return FPGACost(
+            latency_cycles=max(4, work * 4),
+            initiation_interval=1,
+            dsp=max(1, work),
+            lut=max(8, work * 2),
+            ff=max(8, work * 2),
+            metadata={"heuristic": "binary_div"},
+        )
+
+
+class Sigmoid(UnaryElementwiseOperator):
+    OP_TYPE = "Sigmoid"
+
+
+class Tanh(UnaryElementwiseOperator):
+    OP_TYPE = "Tanh"
+
+
+class ReLU(UnaryElementwiseOperator):
+    OP_TYPE = "ReLU"
+
+
+class GELU(UnaryElementwiseOperator):
+    OP_TYPE = "GELU"
+
+
+class Softmax(BuiltinOperator):
+    OP_TYPE = "Softmax"
+
+    def validate(self, values: Mapping[str, Value]) -> None:
+        self._require_input_count(1)
+        self._require_output_count(1)
+        input_value = self._input_values(values)[0]
+        self._require_tensor(input_value, "input[0]")
+        axis = self.attrs.get("axis", -1)
+        self._resolve_axis(axis, len(input_value.shape))
+        self._match_output(
+            values,
+            shape=input_value.shape,
+            axes=input_value.axes,
+            dtype=input_value.dtype,
+            vtype=ValueType.TENSOR,
+        )
+
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
+        input_value = self._input_values(values)[0]
+        work = _shape_product(input_value.shape)
+        return FPGACost(
+            latency_cycles=max(2, work * 2),
+            initiation_interval=1,
+            lut=max(2, work * 2),
+            ff=max(2, work * 2),
+            metadata={"heuristic": "softmax"},
+        )
+
+
+class Sum(ReductionOperator):
+    OP_TYPE = "Sum"
+
+
+class Mean(ReductionOperator):
+    OP_TYPE = "Mean"
+
+
+class Max(ReductionOperator):
+    OP_TYPE = "Max"
+
+
+class MatMul(BuiltinOperator):
+    OP_TYPE = "MatMul"
+
+    def validate(self, values: Mapping[str, Value]) -> None:
+        self._require_input_count(2)
+        self._require_output_count(1)
+        lhs, rhs = self._input_values(values)
+        self._require_tensor(lhs, "input[0]")
+        self._require_tensor(rhs, "input[1]")
+        self._require_same_dtype((lhs, rhs))
+
+        if len(lhs.shape) != 2 or len(rhs.shape) != 2:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} currently supports rank-2 tensor inputs only"
+            )
+        if lhs.shape[1] != rhs.shape[0]:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires lhs.shape[1] == rhs.shape[0], got "
+                f"{lhs.shape[1]} and {rhs.shape[0]}"
+            )
+
+        expected_shape = [lhs.shape[0], rhs.shape[1]]
+        expected_axes = [lhs.axes[0], rhs.axes[1]]
+        self._match_output(
+            values,
+            shape=expected_shape,
+            axes=expected_axes,
+            dtype=lhs.dtype,
+            vtype=ValueType.TENSOR,
+        )
+
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
+        lhs, rhs = self._input_values(values)
+        m_dim, k_dim = lhs.shape
+        _, n_dim = rhs.shape
+        work = m_dim * n_dim * k_dim
+        return FPGACost(
+            latency_cycles=max(1, work),
+            initiation_interval=1,
+            dsp=max(1, min(work, k_dim)),
+            lut=max(1, m_dim * n_dim),
+            ff=max(1, m_dim * n_dim),
+            metadata={"heuristic": "matmul"},
+        )
+
+
+class Transpose(BuiltinOperator):
+    OP_TYPE = "Transpose"
+
+    def validate(self, values: Mapping[str, Value]) -> None:
+        self._require_input_count(1)
+        self._require_output_count(1)
+        input_value = self._input_values(values)[0]
+        self._require_tensor(input_value, "input[0]")
+        perm = self._require_attr("perm", Sequence)
+        if isinstance(perm, str):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires 'perm' to be a sequence of integers"
+            )
+        if len(perm) != len(input_value.shape):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires 'perm' length {len(input_value.shape)}, "
+                f"got {len(perm)}"
+            )
+
+        normalized_perm = [
+            self._resolve_axis(axis, len(input_value.shape), "perm") for axis in perm
+        ]
+        if sorted(normalized_perm) != list(range(len(input_value.shape))):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires 'perm' to be a permutation of axes"
+            )
+
+        expected_shape = [input_value.shape[axis] for axis in normalized_perm]
+        expected_axes = [input_value.axes[axis] for axis in normalized_perm]
+        self._match_output(
+            values,
+            shape=expected_shape,
+            axes=expected_axes,
+            dtype=input_value.dtype,
+            vtype=ValueType.TENSOR,
+        )
+
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
+        work = self._output_work(values)
+        return FPGACost(
+            latency_cycles=max(1, work),
+            initiation_interval=1,
+            bram=max(1, math.ceil(work / 256)),
+            lut=max(1, work // 2),
+            ff=max(1, work // 2),
+            metadata={"heuristic": "transpose"},
+        )
+
+
+class Reshape(BuiltinOperator):
+    OP_TYPE = "Reshape"
+
+    def validate(self, values: Mapping[str, Value]) -> None:
+        self._require_input_count(1)
+        self._require_output_count(1)
+        input_value = self._input_values(values)[0]
+        self._require_tensor(input_value, "input[0]")
+        target_shape = self._require_attr("shape", Sequence)
+        if isinstance(target_shape, str):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires 'shape' to be a sequence of integers"
+            )
+        if any(not isinstance(dim, int) or dim <= 0 for dim in target_shape):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires 'shape' to contain positive integers"
+            )
+        if _shape_product(input_value.shape) != _shape_product(target_shape):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires input and target shape "
+                f"to preserve element count"
+            )
+
+        output = self._output_value(values)
+        if output.shape != list(target_shape):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} expects output shape {list(target_shape)}, "
+                f"got {output.shape}"
+            )
+        if len(output.axes) != len(output.shape):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} expects output axes length to match output rank"
+            )
+        if output.dtype != input_value.dtype or output.vtype is not ValueType.TENSOR:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} expects tensor output with dtype {input_value.dtype}"
+            )
+
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
+        work = self._output_work(values)
+        return FPGACost(
+            latency_cycles=1,
+            initiation_interval=1,
+            lut=max(1, work // 4),
+            ff=max(1, work // 4),
+            metadata={"heuristic": "reshape"},
+        )
+
+
+class Concat(BuiltinOperator):
+    OP_TYPE = "Concat"
+
+    def validate(self, values: Mapping[str, Value]) -> None:
+        self._require_input_count(range(2, 65))
+        self._require_output_count(1)
+        input_values = self._input_values(values)
+        for idx, value in enumerate(input_values):
+            self._require_tensor(value, f"input[{idx}]")
+
+        self._require_same_dtype(input_values)
+        base = input_values[0]
+        axis = self._resolve_axis(
+            self._require_attr("axis", int),
+            len(base.shape),
+        )
+
+        expected_shape = list(base.shape)
+        expected_shape[axis] = 0
+        for value in input_values:
+            if len(value.shape) != len(base.shape):
+                raise InvalidOperatorInstanceError(
+                    f"{self.op_type} requires inputs to have the same rank"
+                )
+            for dim_idx, dim in enumerate(value.shape):
+                if dim_idx == axis:
+                    expected_shape[axis] += dim
+                elif dim != base.shape[dim_idx]:
+                    raise InvalidOperatorInstanceError(
+                        f"{self.op_type} requires non-concatenated dimensions to match"
+                    )
+            if value.axes != base.axes:
+                raise InvalidOperatorInstanceError(
+                    f"{self.op_type} requires inputs to have matching axes"
+                )
+
+        self._match_output(
+            values,
+            shape=expected_shape,
+            axes=base.axes,
+            dtype=base.dtype,
+            vtype=ValueType.TENSOR,
+        )
+
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
+        work = self._output_work(values)
+        return FPGACost(
+            latency_cycles=max(1, work),
+            initiation_interval=1,
+            bram=max(1, math.ceil(work / 512)),
+            lut=max(1, work // 2),
+            ff=max(1, work // 2),
+            metadata={"heuristic": "concat"},
+        )
+
+
+class Slice(BuiltinOperator):
+    OP_TYPE = "Slice"
+
+    def validate(self, values: Mapping[str, Value]) -> None:
+        self._require_input_count(1)
+        self._require_output_count(1)
+        input_value = self._input_values(values)[0]
+        self._require_tensor(input_value, "input[0]")
+        axis = self._resolve_axis(
+            self._require_attr("axis", int),
+            len(input_value.shape),
+        )
+        start = self._require_attr("start", int)
+        end = self._require_attr("end", int)
+        step = self.attrs.get("step", 1)
+        if not isinstance(step, int) or step <= 0:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires 'step' to be a positive integer"
+            )
+        if start < 0 or end <= start or end > input_value.shape[axis]:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires 0 <= start < end <= input dimension"
+            )
+
+        sliced_extent = math.ceil((end - start) / step)
+        expected_shape = list(input_value.shape)
+        expected_shape[axis] = sliced_extent
+        self._match_output(
+            values,
+            shape=expected_shape,
+            axes=input_value.axes,
+            dtype=input_value.dtype,
+            vtype=ValueType.TENSOR,
+        )
+
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
+        work = self._output_work(values)
+        return FPGACost(
+            latency_cycles=max(1, work),
+            initiation_interval=1,
+            lut=max(1, work // 2),
+            ff=max(1, work // 2),
+            metadata={"heuristic": "slice"},
+        )
+
+
+class LayerNorm(BuiltinOperator):
+    OP_TYPE = "LayerNorm"
+
+    def validate(self, values: Mapping[str, Value]) -> None:
+        self._require_input_count(1)
+        self._require_output_count(1)
+        input_value = self._input_values(values)[0]
+        self._require_tensor(input_value, "input[0]")
+        axis = self.attrs.get("axis", -1)
+        self._resolve_axis(axis, len(input_value.shape))
+        self._match_output(
+            values,
+            shape=input_value.shape,
+            axes=input_value.axes,
+            dtype=input_value.dtype,
+            vtype=ValueType.TENSOR,
+        )
+
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
+        work = self._output_work(values)
+        return FPGACost(
+            latency_cycles=max(2, work * 2),
+            initiation_interval=1,
+            dsp=max(1, work // 4),
+            lut=max(2, work * 2),
+            ff=max(2, work * 2),
+            metadata={"heuristic": "layer_norm"},
+        )
+
+
+class Conv1D(BuiltinOperator):
+    OP_TYPE = "Conv1D"
+
+    def validate(self, values: Mapping[str, Value]) -> None:
+        self._require_input_count((2, 3))
+        self._require_output_count(1)
+        input_value, weight_value, *rest = self._input_values(values)
+        self._require_tensor(input_value, "input[0]")
+        self._require_tensor(weight_value, "input[1]")
+        if len(input_value.shape) != 3 or len(weight_value.shape) != 3:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires rank-3 input and weight tensors"
+            )
+        if input_value.dtype != weight_value.dtype:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires matching dtypes for input and weight"
+            )
+        if input_value.shape[1] != weight_value.shape[1]:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires input channels to match weight channels"
+            )
+
+        if rest:
+            bias_value = rest[0]
+            if bias_value.vtype not in (ValueType.TENSOR, ValueType.SCALAR):
+                raise InvalidOperatorInstanceError(
+                    f"{self.op_type} expects optional bias to be scalar or tensor"
+                )
+            if bias_value.vtype is ValueType.TENSOR and bias_value.shape not in (
+                [weight_value.shape[0]],
+                [1, weight_value.shape[0], 1],
+            ):
+                raise InvalidOperatorInstanceError(
+                    f"{self.op_type} expects bias shape to match output channels"
+                )
+
+        stride = self.attrs.get("stride", 1)
+        padding = self.attrs.get("padding", 0)
+        dilation = self.attrs.get("dilation", 1)
+        for attr_name, attr_value in {
+            "stride": stride,
+            "padding": padding,
+            "dilation": dilation,
+        }.items():
+            if not isinstance(attr_value, int) or attr_value < 0:
+                raise InvalidOperatorInstanceError(
+                    f"{self.op_type} requires '{attr_name}' "
+                    f"to be a non-negative integer"
+                )
+        if stride == 0 or dilation == 0:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires 'stride' and 'dilation' to be positive"
+            )
+
+        batch, _, input_length = input_value.shape
+        out_channels, _, kernel_width = weight_value.shape
+        numerator = input_length + (2 * padding) - (dilation * (kernel_width - 1)) - 1
+        if numerator < 0:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} has invalid kernel/padding/dilation for input length"
+            )
+        output_length = math.floor(numerator / stride) + 1
+        if output_length <= 0:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} produced non-positive output length"
+            )
+
+        self._match_output(
+            values,
+            shape=[batch, out_channels, output_length],
+            axes=input_value.axes,
+            dtype=input_value.dtype,
+            vtype=ValueType.TENSOR,
+        )
+
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
+        input_value, weight_value, *_ = self._input_values(values)
+        batch, _, _ = input_value.shape
+        out_channels, in_channels, kernel_width = weight_value.shape
+        output_length = self._output_value(values).shape[2]
+        work = batch * out_channels * output_length * in_channels * kernel_width
+        return FPGACost(
+            latency_cycles=max(1, work),
+            initiation_interval=1,
+            dsp=max(1, in_channels * kernel_width),
+            bram=max(1, math.ceil((out_channels * kernel_width) / 32)),
+            lut=max(1, out_channels * output_length),
+            ff=max(1, out_channels * output_length),
+            metadata={"heuristic": "conv1d"},
+        )
+
+
+class Pad(BuiltinOperator):
+    OP_TYPE = "Pad"
+
+    def validate(self, values: Mapping[str, Value]) -> None:
+        self._require_input_count(1)
+        self._require_output_count(1)
+        input_value = self._input_values(values)[0]
+        self._require_tensor(input_value, "input[0]")
+        pads = self._require_attr("pads", Sequence)
+        if isinstance(pads, str):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires 'pads' to be a sequence of integers"
+            )
+        if len(pads) != len(input_value.shape) * 2:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires 'pads' length {len(input_value.shape) * 2}"
+            )
+        if any(not isinstance(pad, int) or pad < 0 for pad in pads):
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires all pad values to be non-negative integers"
+            )
+
+        expected_shape = []
+        rank = len(input_value.shape)
+        for idx, dim in enumerate(input_value.shape):
+            expected_shape.append(dim + pads[idx] + pads[idx + rank])
+
+        self._match_output(
+            values,
+            shape=expected_shape,
+            axes=input_value.axes,
+            dtype=input_value.dtype,
+            vtype=ValueType.TENSOR,
+        )
+
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
+        work = self._output_work(values)
+        return FPGACost(
+            latency_cycles=max(1, work),
+            initiation_interval=1,
+            bram=max(1, math.ceil(work / 512)),
+            lut=max(1, work // 2),
+            ff=max(1, work // 2),
+            metadata={"heuristic": "pad"},
+        )
+
+
+class Shift(BuiltinOperator):
+    OP_TYPE = "Shift"
+
+    def validate(self, values: Mapping[str, Value]) -> None:
+        self._require_input_count(1)
+        self._require_output_count(1)
+        input_value = self._input_values(values)[0]
+        self._require_tensor(input_value, "input[0]")
+        axis = self._require_attr("axis", int)
+        self._resolve_axis(axis, len(input_value.shape))
+        amount = self._require_attr("amount", int)
+        if amount == 0:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} requires non-zero 'amount'"
+            )
+        self._match_output(
+            values,
+            shape=input_value.shape,
+            axes=input_value.axes,
+            dtype=input_value.dtype,
+            vtype=ValueType.TENSOR,
+        )
+
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
+        work = self._output_work(values)
+        return FPGACost(
+            latency_cycles=max(1, work),
+            initiation_interval=1,
+            bram=max(1, math.ceil(work / 256)),
+            lut=max(1, work // 2),
+            ff=max(1, work // 2),
+            metadata={"heuristic": "shift"},
+        )
+
+
+BUILTIN_OPERATORS = [
+    MatMul,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Transpose,
+    Reshape,
+    Concat,
+    Slice,
+    Sigmoid,
+    Tanh,
+    ReLU,
+    GELU,
+    Softmax,
+    Sum,
+    Mean,
+    Max,
+    LayerNorm,
+    Conv1D,
+    Pad,
+    Shift,
+]
+
+BUILTIN_OPERATOR_TYPES = [
+    operator_cls.operator_type() for operator_cls in BUILTIN_OPERATORS
+]
+
+
+def register_builtin_operators(registry: OperatorRegistry) -> None:
+    for operator_cls in BUILTIN_OPERATORS:
+        registry.register(operator_cls)

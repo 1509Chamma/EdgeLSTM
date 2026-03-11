@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import inspect
-from typing import Dict, TypeVar
+from typing import TypeVar
 
 from .op import InvalidOperatorDefinitionError, Operator, OperatorError
 
@@ -24,7 +24,7 @@ class OperatorRegistry:
     """Runtime registry for operator classes and instance construction."""
 
     def __init__(self) -> None:
-        self._operators: Dict[str, type[Operator]] = {}
+        self._operators: dict[str, type[Operator]] = {}
 
     def register(self, operator_cls: type[OperatorT]) -> type[OperatorT]:
         if not inspect.isclass(operator_cls) or not issubclass(operator_cls, Operator):
@@ -61,4 +61,13 @@ class OperatorRegistry:
         return sorted(self._operators)
 
 
-default_registry = OperatorRegistry()
+def _build_default_registry() -> OperatorRegistry:
+    registry = OperatorRegistry()
+
+    from .builtins import register_builtin_operators
+
+    register_builtin_operators(registry)
+    return registry
+
+
+default_registry = _build_default_registry()

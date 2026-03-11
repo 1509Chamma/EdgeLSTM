@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import inspect
 from abc import ABC, abstractmethod
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, ClassVar, Dict, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:
     from .value import Value
@@ -31,7 +32,7 @@ class FPGACost:
     bram: int = 0
     lut: int = 0
     ff: int = 0
-    metadata: Dict[str, object] = field(default_factory=dict)
+    metadata: dict[str, object] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         for field_name in (
@@ -55,7 +56,7 @@ class Operator(ABC):
     cost estimation, and HLS generation hooks.
     """
 
-    OP_TYPE: ClassVar[Optional[str]] = None
+    OP_TYPE: ClassVar[str | None] = None
 
     def __init_subclass__(cls, **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
@@ -73,9 +74,9 @@ class Operator(ABC):
         op_id: str,
         inputs: Sequence[str],
         outputs: Sequence[str],
-        attrs: Optional[Dict[str, object]] = None,
-        name: Optional[str] = None,
-        source_span: Optional[str] = None,
+        attrs: dict[str, object] | None = None,
+        name: str | None = None,
+        source_span: str | None = None,
     ) -> None:
         self.op_id = self._validate_identifier("op_id", op_id)
         self.op_type = self.operator_type()
@@ -94,7 +95,7 @@ class Operator(ABC):
             )
         return op_type
 
-    def to_dict(self) -> Dict[str, object]:
+    def to_dict(self) -> dict[str, object]:
         """Convert the operator to a JSON-serializable dictionary."""
 
         return {
@@ -120,7 +121,7 @@ class Operator(ABC):
         """Return the path to the HLS template used for code generation."""
 
     @abstractmethod
-    def hls_context(self, values: Mapping[str, Value]) -> Dict[str, object]:
+    def hls_context(self, values: Mapping[str, Value]) -> dict[str, object]:
         """Return the template context used to render HLS for this operator."""
 
     @staticmethod
@@ -147,7 +148,7 @@ class Operator(ABC):
         return normalized
 
     @staticmethod
-    def _validate_attrs(attrs: Optional[Dict[str, object]]) -> Dict[str, object]:
+    def _validate_attrs(attrs: dict[str, object] | None) -> dict[str, object]:
         if attrs is None:
             return {}
         if not isinstance(attrs, dict):
@@ -155,9 +156,7 @@ class Operator(ABC):
         return dict(attrs)
 
     @staticmethod
-    def _validate_optional_string(
-        field_name: str, value: Optional[str]
-    ) -> Optional[str]:
+    def _validate_optional_string(field_name: str, value: str | None) -> str | None:
         if value is None:
             return None
         if not isinstance(value, str):

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional
-
 from .op import Operator
 from .registry import OperatorRegistry, default_registry
 from .value import Value
@@ -24,15 +22,15 @@ class Graph:
 
     def __init__(
         self,
-        values: Dict[str, Value],
-        ops: Dict[str, Operator],
-        graph_inputs: List[str],
-        graph_outputs: List[str],
-        states: Optional[Dict[str, Value]] = None,
-        registry: Optional[OperatorRegistry] = None,
+        values: dict[str, Value],
+        ops: dict[str, Operator],
+        graph_inputs: list[str],
+        graph_outputs: list[str],
+        states: dict[str, Value] | None = None,
+        registry: OperatorRegistry | None = None,
     ) -> None:
         self.values = dict(values)
-        self.ops: Dict[str, Operator] = {}
+        self.ops: dict[str, Operator] = {}
         self.graph_inputs = list(graph_inputs)
         self.graph_outputs = list(graph_outputs)
         self.states = dict(states) if states is not None else {}
@@ -55,7 +53,7 @@ class Graph:
         operator = self.registry.create(op_type, **node_kwargs)
         return self.add_operator(operator)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict[str, object]:
         """
         Convert the entire graph to a JSON-serializable dictionary.
         """
@@ -73,7 +71,8 @@ class Graph:
             raise TypeError("ops must contain Operator instances")
         if operator.op_id != op_id:
             raise ValueError(
-                f"operator key '{op_id}' does not match operator.op_id '{operator.op_id}'"
+                f"operator key '{op_id}' does not match "
+                f"operator.op_id '{operator.op_id}'"
             )
 
     def _store_operator(self, op_id: str, operator: Operator) -> None:

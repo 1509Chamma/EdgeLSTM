@@ -2,6 +2,7 @@ from abc import abstractmethod
 
 import pytest
 
+from src.ir_graph.builtins import BUILTIN_OPERATOR_TYPES
 from src.ir_graph.op import (
     FPGACost,
     InvalidOperatorDefinitionError,
@@ -67,8 +68,8 @@ class AbstractRegisteredOperator(Operator):
         return {}
 
 
-def test_default_registry_starts_empty_until_builtins_are_registered():
-    assert default_registry.list_registered() == []
+def test_default_registry_preloads_builtin_operator_types():
+    assert default_registry.list_registered() == sorted(BUILTIN_OPERATOR_TYPES)
 
 
 def test_registry_register_and_get_returns_operator_class():
