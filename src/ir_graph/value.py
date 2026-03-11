@@ -1,5 +1,5 @@
-from typing import List, Optional, Dict
 from enum import Enum
+
 
 class ValueType(Enum):
     TENSOR = "tensor"
@@ -24,11 +24,11 @@ class Value:
         value_id: str,
         vtype: ValueType,
         dtype: str,
-        shape: List[int],
-        axes: List[str],
-        layout: Optional[str] = None,
-        quant: Optional[Dict[str, str]] = None,
-        producer_op_id: Optional[str] = None,
+        shape: list[int],
+        axes: list[str],
+        layout: str | None = None,
+        quant: dict[str, str] | None = None,
+        producer_op_id: str | None = None,
     ) -> None:
         self.value_id = value_id
         self.vtype = vtype
@@ -39,7 +39,7 @@ class Value:
         self.quant = quant
         self.producer_op_id = producer_op_id
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict[str, object]:
         """
         Convert the Value to a JSON-serializable dictionary.
         """
@@ -53,4 +53,3 @@ class Value:
             "quant": self.quant,
             "producer_op_id": self.producer_op_id,
         }
-
