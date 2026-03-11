@@ -1,0 +1,48 @@
+{
+  "name": "xilinx_kv260",
+  "vendor": "Xilinx",
+  "part_number": "xck26-sfvc784-2LV",
+  "resources": {
+    "luts": 256000,
+    "ffs": 512000,
+    "dsps": 1200,
+    "bram_36k": 144,
+    "bram_18k": 0
+  },
+  "memory": {
+    "on_chip_kb": 2952,
+    "external_bandwidth_gbps": 153.6,
+    "external_latency_ns": 50.0
+  },
+  "io": {
+    "pcie_lanes": 0,
+    "pcie_gen": 3,
+    "other_interfaces": {
+      "ddr4": "4GB non-ECC",
+      "qspi": "512Mb",
+      "boot_sd": "SDHC",
+      "ethernet": "1x 1GbE",
+      "usb": "4x USB 3.0/2.0",
+      "displayport": "1x DP 1.2a",
+      "hdmi": "1x HDMI 1.4",
+      "ias_mipi": "2x",
+      "raspberry_pi_mipi": "1x",
+      "pmod": "1x 12-pin",
+      "isp": "OnSemi AP1302"
+    }
+  },
+  "capabilities": {
+    "supports_fp32": true,
+    "supports_fp64": false,
+    "supports_bfloat16": false,
+    "supports_int8": true,
+    "supports_int16": true,
+    "supports_dsp_cascading": true
+  },
+  "policies": {
+    "max_clock_mhz": 250.0,
+    "target_clock_mhz": 200.0,
+    "default_precision": "int8",
+    "power_budget_w": 25.0
+  }
+}

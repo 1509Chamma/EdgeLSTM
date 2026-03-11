@@ -1,0 +1,40 @@
+{
+  "name": "xilinx_u250",
+  "vendor": "Xilinx",
+  "part_number": "xcu250-figd2104-2L",
+  "resources": {
+    "luts": 1728000,
+    "ffs": 3456000,
+    "dsps": 12288,
+    "bram_36k": 2688,
+    "bram_18k": 0
+  },
+  "memory": {
+    "on_chip_kb": 55296,
+    "external_bandwidth_gbps": 616.0,
+    "external_latency_ns": 10.0
+  },
+  "io": {
+    "pcie_lanes": 16,
+    "pcie_gen": 3,
+    "other_interfaces": {
+      "ddr4": "64GB ECC @ 2400 MT/s",
+      "qsfp28": "2x 100GbE",
+      "usb_maintenance": "micro-USB"
+    }
+  },
+  "capabilities": {
+    "supports_fp32": true,
+    "supports_fp64": false,
+    "supports_bfloat16": false,
+    "supports_int8": true,
+    "supports_int16": true,
+    "supports_dsp_cascading": true
+  },
+  "policies": {
+    "max_clock_mhz": 300.0,
+    "target_clock_mhz": 250.0,
+    "default_precision": "int8",
+    "power_budget_w": 225.0
+  }
+}

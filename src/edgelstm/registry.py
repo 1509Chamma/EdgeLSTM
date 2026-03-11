@@ -1,0 +1,68 @@
+# Loads and manages device presets from JSON
+
+import os
+import json
+from pathlib import Path
+from typing import Dict, Any, Optional
+
+from .device import FPGADevice
+
+
+class DeviceRegistry:
+    
+    def __init__(self, config_dir: Optional[str] = None):
+
+        if config_dir is None:
+            package_root = Path(__file__).parent.parent.parent
+            config_dir = str(package_root / "configs" / "devices")
+        
+        self.config_dir = Path(config_dir)
+        self._presets: Dict[str, Dict[str, Any]] = {}
+        self._load_presets()
+    
+    def _load_presets(self) -> None:
+        
+        if not self.config_dir.exists():
+            raise RuntimeError(
+                f"Config directory does not exist: {self.config_dir}\n"
+                "Please create it or pass a valid config_dir to DeviceRegistry."
+            )
+        
+        for file in self.config_dir.glob("*.json"):
+            try:
+                with open(file, "r") as f:
+                    preset = json.load(f)
+                    if preset and "name" in preset:
+                        preset_name = preset["name"]
+                        self._presets[preset_name] = preset
+            except (json.JSONDecodeError, IOError) as e:
+                raise RuntimeError(f"Failed to load preset {file}: {e}") from e
+    
+    def list_presets(self) -> list:
+        return sorted(self._presets.keys())
+    
+    def get_preset(self, preset_name: str) -> Dict[str, Any]:
+
+        if preset_name not in self._presets:
+            available = ", ".join(self.list_presets()) or "(none)"
+            raise KeyError(
+                f"Preset '{preset_name}' not found. Available: {available}"
+            )
+        return dict(self._presets[preset_name])
+    
+    def load_device(
+        self,
+        preset_name: str,
+        overrides: Optional[Dict[str, Any]] = None,
+    ) -> FPGADevice:
+
+        preset_config = self.get_preset(preset_name)
+        
+        device = FPGADevice.from_dict(preset_config)
+
+        if overrides:
+            device = device.merge_overrides(overrides)
+
+        device.validate()
+        
+        return device
