@@ -48,7 +48,7 @@ class DeviceRegistry:
             raise KeyError(
                 f"Preset '{preset_name}' not found. Available: {available}"
             )
-        return self._presets[preset_name]
+        return dict(self._presets[preset_name])
     
     def load_device(
         self,
