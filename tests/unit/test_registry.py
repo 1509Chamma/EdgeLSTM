@@ -1,7 +1,9 @@
-import pytest
-import tempfile
 import json
+import tempfile
 from pathlib import Path
+
+import pytest
+
 from edgelstm.device import DeviceRegistry, FPGADevice
 
 
@@ -54,12 +56,12 @@ class TestDeviceRegistry:
                 json.dump(preset2, f)
 
             yield config_dir
-    
+
     # Registry initialization test
     def test_registry_initialization(self, temp_config_dir):
         registry = DeviceRegistry(str(temp_config_dir))
         assert len(registry._presets) == 2
-    
+
     # List presets test
     def test_list_presets(self, temp_config_dir):
         registry = DeviceRegistry(str(temp_config_dir))
@@ -69,7 +71,7 @@ class TestDeviceRegistry:
         assert "test_device_2" in presets
         assert len(presets) == 2
         assert presets == sorted(presets)
-    
+
     # Get preset by name test
     def test_get_preset(self, temp_config_dir):
         registry = DeviceRegistry(str(temp_config_dir))
@@ -78,14 +80,14 @@ class TestDeviceRegistry:
         assert preset["name"] == "test_device_1"
         assert preset["vendor"] == "TestVendor"
         assert preset["resources"]["luts"] == 100000
-    
+
     # Get preset not found test
     def test_get_preset_not_found(self, temp_config_dir):
         registry = DeviceRegistry(str(temp_config_dir))
 
         with pytest.raises(KeyError, match="not found"):
             registry.get_preset("nonexistent_device")
-    
+
     # Load device from preset test
     def test_load_device_from_preset(self, temp_config_dir):
         registry = DeviceRegistry(str(temp_config_dir))
@@ -95,7 +97,7 @@ class TestDeviceRegistry:
         assert device.name == "test_device_1"
         assert device.vendor == "TestVendor"
         assert device.resources.luts == 100000
-    
+
     # Load device with overrides test
     def test_load_device_with_overrides(self, temp_config_dir):
         registry = DeviceRegistry(str(temp_config_dir))
@@ -104,7 +106,7 @@ class TestDeviceRegistry:
             "name": "test_device_1_customized",
             "policies": {
                 "target_clock_mhz": 200.0,
-            }
+            },
         }
 
         device = registry.load_device("test_device_1", overrides=overrides)
@@ -112,7 +114,7 @@ class TestDeviceRegistry:
         assert device.name == "test_device_1_customized"
         assert device.policies.target_clock_mhz == 200.0
         assert device.vendor == "TestVendor"
-    
+
     # Nested overrides test
     def test_load_device_with_nested_overrides(self, temp_config_dir):
         registry = DeviceRegistry(str(temp_config_dir))
@@ -129,7 +131,7 @@ class TestDeviceRegistry:
 
         assert device.policies.target_clock_mhz == 500.0
         assert device.policies.max_clock_mhz == 600.0
-    
+
     # Invalid overrides cause validation to fail test
     def test_load_device_invalid_override_fails(self, temp_config_dir):
         registry = DeviceRegistry(str(temp_config_dir))
@@ -142,14 +144,14 @@ class TestDeviceRegistry:
 
         with pytest.raises(ValueError, match="luts.*positive"):
             registry.load_device("test_device_1", overrides=overrides)
-    
+
     # Load device nonexistent preset test
     def test_load_device_nonexistent_preset(self, temp_config_dir):
         registry = DeviceRegistry(str(temp_config_dir))
 
         with pytest.raises(KeyError, match="not found"):
             registry.load_device("nonexistent_preset")
-    
+
     # Invalid config directory test
     def test_registry_invalid_config_dir(self):
         with pytest.raises(RuntimeError, match="does not exist"):

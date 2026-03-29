@@ -4,7 +4,6 @@ from typing import Any, cast
 
 import pytest
 
-from edgelstm.ops.builtins import BUILTIN_OPERATOR_TYPES
 from edgelstm.ir.op import (
     FPGACost,
     InvalidOperatorDefinitionError,
@@ -17,6 +16,7 @@ from edgelstm.ir.registry import (
     get_default_registry,
 )
 from edgelstm.ir.value import Value
+from edgelstm.ops.builtins import BUILTIN_OPERATOR_TYPES
 
 
 class ScaleOperator(Operator):

@@ -1,0 +1,159 @@
+E501 Line too long (94 > 88)
+   --> src\edgelstm\ops\builtins.py:967:89
+    |
+966 |         # Heuristic: LSTM is roughly 4 MatMuls per orientation per step
+967 |         work = seq_len * batch * num_directions * 4 * (input_size + hidden_size) * hidden_size
+    |                                                                                         ^^^^^^
+968 |         return FPGACost(
+969 |             latency_cycles=max(10, work // 4),
+    |
+
+E501 Line too long (110 > 88)
+  --> src\edgelstm\parsers\onnx\parser.py:79:89
+   |
+77 |         onnx_graph = model.graph
+78 |         values: dict[str, Value] = {}
+79 |         ops: dict[str, Any] = {} # Using Any for now to avoid circular imports or strict typing before mapping
+   |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^
+80 |         
+81 |         initializers = {init.name for init in onnx_graph.initializer}
+   |
+
+E501 Line too long (90 > 88)
+   --> src\edgelstm\parsers\onnx\parser.py:116:89
+    |
+115 |             op_id = node.name or f"{op_type}_{len(ops)}"
+116 |             attrs = {attr.name: self._get_onnx_attribute(attr) for attr in node.attribute}
+    |                                                                                         ^^
+117 |             
+118 |             # Special handling for Gemm: Map it to MatMul (+ Add if bias present)
+    |
+
+E501 Line too long (101 > 88)
+   --> src\edgelstm\parsers\onnx\parser.py:134:89
+    |
+132 |                     )
+133 |
+134 |                 ops[f"{op_id}_matmul"] = ("MatMul", [node.input[0], node.input[1]], [matmul_out], {})
+    |                                                                                         ^^^^^^^^^^^^^
+135 |
+136 |                 if len(node.input) > 2:
+    |
+
+E501 Line too long (92 > 88)
+   --> src\edgelstm\parsers\onnx\parser.py:137:89
+    |
+136 |                 if len(node.input) > 2:
+137 |                     ops[op_id] = ("Add", [matmul_out, node.input[2]], list(node.output), {})
+    |                                                                                         ^^^^
+138 |                 else:
+139 |                     ops.pop(f"{op_id}_matmul")
+    |
+
+E501 Line too long (98 > 88)
+   --> src\edgelstm\parsers\onnx\parser.py:140:89
+    |
+138 |                 else:
+139 |                     ops.pop(f"{op_id}_matmul")
+140 |                     ops[op_id] = ("MatMul", [node.input[0], node.input[1]], list(node.output), {})
+    |                                                                                         ^^^^^^^^^^
+141 |                 continue
+    |
+
+E501 Line too long (107 > 88)
+  --> src\edgelstm\parsers\pytorch\parser.py:62:89
+   |
+61 |             # Normalize example_input to a tuple to satisfy some type-checkers
+62 |             args: tuple[Any, ...] = example_input if isinstance(example_input, tuple) else (example_input,)
+   |                                                                                         ^^^^^^^^^^^^^^^^^^^
+63 |
+64 |             torch.onnx.export(
+   |
+
+E501 Line too long (100 > 88)
+  --> tests\integration\test_device_integration.py:25:89
+   |
+23 |             part_number="xcu250-figd2104-2L",
+24 |             resources=Resources(luts=1728000, ffs=3456000, dsps=6144, bram_36k=2688),
+25 |             memory=Memory(on_chip_kb=86016, external_bandwidth_gbps=76.8, external_latency_ns=10.0),
+   |                                                                                         ^^^^^^^^^^^^
+26 |             policies=Policies(max_clock_mhz=300.0, target_clock_mhz=250.0, power_budget_w=75.0),
+27 |         )
+   |
+
+E501 Line too long (96 > 88)
+  --> tests\integration\test_device_integration.py:26:89
+   |
+24 |             resources=Resources(luts=1728000, ffs=3456000, dsps=6144, bram_36k=2688),
+25 |             memory=Memory(on_chip_kb=86016, external_bandwidth_gbps=76.8, external_latency_ns=10.0),
+26 |             policies=Policies(max_clock_mhz=300.0, target_clock_mhz=250.0, power_budget_w=75.0),
+   |                                                                                         ^^^^^^^^
+27 |         )
+   |
+
+E501 Line too long (90 > 88)
+  --> tests\unit\test_onnx_parser.py:15:89
+   |
+13 |     def test_matmul_add_parse(self):
+14 |         # Create a simple ONNX model: MatMul + Add
+15 |         node1 = helper.make_node("MatMul", ["X", "W"], ["MatMul_out"], name="matmul_node")
+   |                                                                                         ^^
+16 |         node2 = helper.make_node("Add", ["MatMul_out", "B"], ["Y"], name="add_node")
+   |
+
+E501 Line too long (90 > 88)
+  --> tests\unit\test_onnx_parser.py:58:89
+   |
+56 |             "lstm_graph",
+57 |             [
+58 |                 helper.make_tensor_value_info("X", TensorProto.FLOAT, [5, 1, input_size]),
+   |                                                                                         ^^
+59 |                 helper.make_tensor_value_info("W", TensorProto.FLOAT, [1, 4 * hidden_size, input_size]),
+60 |                 helper.make_tensor_value_info("R", TensorProto.FLOAT, [1, 4 * hidden_size, hidden_size]),
+   |
+
+E501 Line too long (104 > 88)
+  --> tests\unit\test_onnx_parser.py:59:89
+   |
+57 |             [
+58 |                 helper.make_tensor_value_info("X", TensorProto.FLOAT, [5, 1, input_size]),
+59 |                 helper.make_tensor_value_info("W", TensorProto.FLOAT, [1, 4 * hidden_size, input_size]),
+   |                                                                                         ^^^^^^^^^^^^^^^^
+60 |                 helper.make_tensor_value_info("R", TensorProto.FLOAT, [1, 4 * hidden_size, hidden_size]),
+61 |             ],
+   |
+
+E501 Line too long (105 > 88)
+  --> tests\unit\test_onnx_parser.py:60:89
+   |
+58 |                 helper.make_tensor_value_info("X", TensorProto.FLOAT, [5, 1, input_size]),
+59 |                 helper.make_tensor_value_info("W", TensorProto.FLOAT, [1, 4 * hidden_size, input_size]),
+60 |                 helper.make_tensor_value_info("R", TensorProto.FLOAT, [1, 4 * hidden_size, hidden_size]),
+   |                                                                                         ^^^^^^^^^^^^^^^^^
+61 |             ],
+62 |             [helper.make_tensor_value_info("Y", TensorProto.FLOAT, [5, 1, 1, hidden_size])],
+   |
+
+E501 Line too long (92 > 88)
+  --> tests\unit\test_onnx_parser.py:62:89
+   |
+60 |                 helper.make_tensor_value_info("R", TensorProto.FLOAT, [1, 4 * hidden_size, hidden_size]),
+61 |             ],
+62 |             [helper.make_tensor_value_info("Y", TensorProto.FLOAT, [5, 1, 1, hidden_size])],
+   |                                                                                         ^^^^
+63 |         )
+64 |         model = helper.make_model(graph, producer_name="lstm_test")
+   |
+
+E501 Line too long (114 > 88)
+  --> tests\unit\test_tensorflow_parser.py:21:89
+   |
+19 |     parser = TensorFlowParser()
+20 |     # Mocked onnx parser
+21 |     parser.onnx_parser.parse = MagicMock(return_value=Graph(values={}, ops={}, graph_inputs=[], graph_outputs=[]))
+   |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+22 |     
+23 |     # Act
+   |
+
+Found 15 errors.

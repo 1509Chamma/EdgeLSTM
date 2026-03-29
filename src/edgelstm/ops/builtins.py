@@ -964,7 +964,14 @@ class LSTM(BuiltinOperator):
         num_directions = 2 if direction == "bidirectional" else 1
 
         # Heuristic: LSTM is roughly 4 MatMuls per orientation per step
-        work = seq_len * batch * num_directions * 4 * (input_size + hidden_size) * hidden_size
+        work = (
+            seq_len
+            * batch
+            * num_directions
+            * 4
+            * (input_size + hidden_size)
+            * hidden_size
+        )
         return FPGACost(
             latency_cycles=max(10, work // 4),
             initiation_interval=1,

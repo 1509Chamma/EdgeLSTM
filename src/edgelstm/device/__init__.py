@@ -1,4 +1,4 @@
-from .board import FPGADevice, Resources, Memory, IO, Capabilities, Policies
+from .board import IO, Capabilities, FPGADevice, Memory, Policies, Resources
 from .registry import DeviceRegistry
 
 __all__ = [

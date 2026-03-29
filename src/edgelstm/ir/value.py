@@ -6,6 +6,7 @@ class ValueType(Enum):
     STATE = "State"
     SCALAR = "scalar"
 
+
 class Value:
     """
     Represents a value in the intermediate representation (IR).
@@ -19,6 +20,7 @@ class Value:
         quant (Optional[Dict[str, str]]): Quantization parameters if applicable
         producer_op_id (Optional[str]): The ID of the operation that produces this value
     """
+
     def __init__(
         self,
         value_id: str,

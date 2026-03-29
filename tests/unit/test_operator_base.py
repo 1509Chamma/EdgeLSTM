@@ -64,9 +64,7 @@ def test_concrete_operator_requires_non_empty_op_type():
             def validate(self, values: Mapping[str, Value]) -> None:
                 return None
 
-            def estimate_fpga_cost(
-                self, values: Mapping[str, Value]
-            ) -> FPGACost:
+            def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
                 return FPGACost(latency_cycles=1)
 
             def hls_template_path(self) -> str:
