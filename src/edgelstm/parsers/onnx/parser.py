@@ -230,7 +230,7 @@ class ONNXParser:
             return attr.i
         if attr.HasField("s"):
             return attr.s.decode("utf-8")
-        if attr.t:
+        if attr.HasField("t"):
             return onnx.numpy_helper.to_array(attr.t)
         if attr.floats:
             return list(attr.floats)

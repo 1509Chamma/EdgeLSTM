@@ -51,7 +51,7 @@ class PyTorchParser:
             # Default export settings
             default_kwargs = {
                 "export_params": True,
-                "opset_version": 14,
+                "opset_version": 18,
                 "do_constant_folding": True,
                 "input_names": ["input"],
                 "output_names": ["output"],
