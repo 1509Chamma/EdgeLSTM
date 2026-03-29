@@ -49,7 +49,8 @@ class ONNXParser:
             self.op_mapping.update(extra_op_mapping)
 
     def register_op_mapping(self, onnx_op: str, ir_op: str) -> None:
-        """Register a custom mapping from an ONNX operator name to an IR operator type."""
+        """Register a custom mapping from an ONNX operator name
+        to an IR operator type."""
         self.op_mapping[onnx_op] = ir_op
 
     def _get_ir_op_type(self, onnx_op: str) -> str | None:
