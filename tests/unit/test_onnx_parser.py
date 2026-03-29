@@ -1,10 +1,8 @@
 import unittest
-import os
 import onnx
 import onnx.helper as helper
 from onnx import TensorProto
 from edgelstm.parsers.onnx.parser import ONNXParser
-from edgelstm.ir.value import ValueType
 
 class TestONNXParser(unittest.TestCase):
     def setUp(self):

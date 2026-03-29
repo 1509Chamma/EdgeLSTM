@@ -8,7 +8,7 @@ from edgelstm.ir.graph import Graph
 from edgelstm.ir.value import Value, ValueType
 
 if TYPE_CHECKING:
-    from edgelstm.ops.registry import OperatorRegistry
+    from edgelstm.ir.registry import OperatorRegistry
 
 class ONNXParser:
     """
@@ -76,6 +76,7 @@ class ONNXParser:
         values: dict[str, Value] = {}
         ops: dict[str, Any] = {} # Using Any for now to avoid circular imports or strict typing before mapping
         
+        initializers = {init.name for init in onnx_graph.initializer}
         graph_inputs = []
         for inp in onnx_graph.input:
             name = inp.name
@@ -88,7 +89,8 @@ class ONNXParser:
                 shape=shape,
                 axes=[f"dim_{i}" for i in range(len(shape))],
             )
-            graph_inputs.append(name)
+            if name not in initializers:
+                graph_inputs.append(name)
 
         for init in onnx_graph.initializer:
             name = init.name
@@ -106,7 +108,7 @@ class ONNXParser:
             onnx_op = node.op_type
             op_type = self._get_ir_op_type(onnx_op)
             if not op_type:
-                continue
+                raise ValueError(f"Unsupported ONNX operator: {onnx_op}")
 
             op_id = node.name or f"{op_type}_{len(ops)}"
             attrs = {attr.name: self._get_onnx_attribute(attr) for attr in node.attribute}
@@ -117,9 +119,9 @@ class ONNXParser:
                 if matmul_out not in values:
                     # Estimate shape from inputs... simplified for now
                     # Assuming lhs: [m, k], rhs: [k, n], out: [m, n]
-                     lhs = values[node.input[0]]
-                     rhs = values[node.input[1]]
-                     values[matmul_out] = Value(
+                    lhs = values[node.input[0]]
+                    rhs = values[node.input[1]]
+                    values[matmul_out] = Value(
                         value_id=matmul_out,
                         vtype=ValueType.TENSOR,
                         dtype=lhs.dtype,
@@ -127,10 +129,8 @@ class ONNXParser:
                         axes=[lhs.axes[0], rhs.axes[1]],
                     )
 
-                
                 ops[f"{op_id}_matmul"] = ("MatMul", [node.input[0], node.input[1]], [matmul_out], {})
-                
-                
+
                 if len(node.input) > 2:
                     ops[op_id] = ("Add", [matmul_out, node.input[2]], list(node.output), {})
                 else:
@@ -151,9 +151,9 @@ class ONNXParser:
         graph_outputs = [out.name for out in onnx_graph.output]
         for out in onnx_graph.output:
             if out.name not in values:
-                 shape = self._get_onnx_shape(out.type.tensor_type)
-                 dtype = self._get_onnx_dtype(out.type.tensor_type.elem_type)
-                 values[out.name] = Value(
+                shape = self._get_onnx_shape(out.type.tensor_type)
+                dtype = self._get_onnx_dtype(out.type.tensor_type.elem_type)
+                values[out.name] = Value(
                     value_id=out.name,
                     vtype=ValueType.TENSOR,
                     dtype=dtype,
@@ -187,8 +187,9 @@ class ONNXParser:
             if dim.HasField("dim_value"):
                 shape.append(dim.dim_value)
             else:
-                # Unknown/Dynamic dimension? Use -1 or 1? 
-                shape.append(-1)
+                # Unknown/Dynamic dimension: use 1 as a safe positive placeholder
+                # for cost estimation and validation.
+                shape.append(1)
         return shape
 
     def _get_onnx_dtype(self, elem_type: int) -> str:

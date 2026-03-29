@@ -4,7 +4,7 @@ colorama==0.4.6
 iniconfig==2.3.0
 ml_dtypes==0.5.4
 mypy_extensions==1.1.0
-numpy==2.2.6
+numpy==2.4.4
 onnx==1.21.0
 packaging==26.0
 pathspec==1.0.4
