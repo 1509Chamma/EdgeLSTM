@@ -2,7 +2,6 @@ from edgelstm.device import FPGADevice, Memory, Policies, Resources
 
 
 class TestFPGADeviceIntegration:
-
     # Basic validation in integration context
     def test_validate_basic_device(self):
         basic_device = FPGADevice(

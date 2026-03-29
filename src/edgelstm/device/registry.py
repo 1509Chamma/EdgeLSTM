@@ -8,7 +8,6 @@ from .board import FPGADevice
 
 
 class DeviceRegistry:
-
     def __init__(self, config_dir: str | None = None):
 
         if config_dir is None:

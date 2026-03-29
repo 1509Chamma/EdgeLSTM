@@ -81,7 +81,9 @@ class ONNXParser:
             {}
         )  # Using Any for now to avoid circular imports or strict typing before mapping
 
-        initializers = {init.name for init in onnx_graph.initializer}
+        initializers = {
+            init.name for init in onnx_graph.initializer
+        }
         graph_inputs = []
         for inp in onnx_graph.input:
             name = inp.name

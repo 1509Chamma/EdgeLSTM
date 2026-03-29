@@ -6,7 +6,6 @@ from typing import Any
 
 @dataclass
 class Resources:
-
     # Number of Look-Up Tables (LUTS) available
     luts: int
 

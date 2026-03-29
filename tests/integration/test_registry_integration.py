@@ -8,7 +8,6 @@ from edgelstm.device import DeviceRegistry, FPGADevice
 
 
 class TestDeviceRegistryIntegration:
-
     @pytest.fixture
     def temp_config_dir(self):
         # Create temporary config directory with test presets
