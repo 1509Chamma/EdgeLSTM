@@ -81,7 +81,9 @@ class ONNXParser:
             {}
         )  # Using Any for now to avoid circular imports or strict typing before mapping
 
-        initializers = {init.name for init in onnx_graph.initializer}
+        initializers = {
+            init.name for init in onnx_graph.initializer
+        }
         graph_inputs = []
         for inp in onnx_graph.input:
             name = inp.name
@@ -230,7 +232,7 @@ class ONNXParser:
             return attr.i
         if attr.HasField("s"):
             return attr.s.decode("utf-8")
-        if attr.t:
+        if attr.HasField("t"):
             return onnx.numpy_helper.to_array(attr.t)
         if attr.floats:
             return list(attr.floats)

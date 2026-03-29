@@ -11,7 +11,6 @@ from edgelstm.device import (
 
 
 class TestResources:
-
     # Basic resource test
     def test_create_basic_resources(self):
         res = Resources(luts=100000, ffs=200000, dsps=500, bram_36k=100)
@@ -34,7 +33,6 @@ class TestResources:
 
 
 class TestMemory:
-
     # Basic memory test
     def test_create_basic_memory(self):
         mem = Memory(on_chip_kb=4096, external_bandwidth_gbps=19.2)
@@ -53,7 +51,6 @@ class TestMemory:
 
 
 class TestIO:
-
     # Default IO configuration test
     def test_create_default_io(self):
         io = IO()
@@ -74,7 +71,6 @@ class TestIO:
 
 
 class TestCapabilities:
-
     # Default capabilities test
     def test_create_default_capabilities(self):
         cap = Capabilities()
@@ -94,7 +90,6 @@ class TestCapabilities:
 
 
 class TestPolicies:
-
     # Default policies test
     def test_create_default_policies(self):
         p = Policies()
@@ -115,7 +110,6 @@ class TestPolicies:
 
 
 class TestFPGADevice:
-
     @pytest.fixture
     def basic_device(self):
         # Create a basic FPGADevice for testing

@@ -1,6 +1,7 @@
 import re
 from collections.abc import Mapping
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -137,3 +138,81 @@ def test_render_operator_hls_raises_for_missing_context_keys():
         match="missing context value 'required_value'",
     ):
         render_operator_hls(operator, values={})
+
+
+def test_resolve_hls_template_absolute_path_missing():
+    class AbsoluteMissingOp(Operator):
+        OP_TYPE = "AbsMiss"
+
+        def validate(self, values):
+            pass
+
+        def estimate_fpga_cost(self, values):
+            return FPGACost(latency_cycles=1)
+
+        def hls_template_path(self):
+            return "C:/non_existent_absolute_path_12345/template.cpp.tpl"
+
+        def hls_context(self, values):
+            return {}
+
+    with pytest.raises(
+        HLSTemplateNotFoundError, match="(does not exist|could not be resolved) for operator"
+    ):
+        resolve_hls_template_path(AbsoluteMissingOp(op_id="op1", inputs=[], outputs=[]))
+
+
+def test_render_operator_hls_malformed_syntax():
+    class BadOp(Operator):
+        OP_TYPE = "BadOp"
+
+        def validate(self, values):
+            pass
+
+        def estimate_fpga_cost(self, values):
+            return FPGACost(latency_cycles=1)
+
+        def hls_template_path(self):
+            return "C:/bad.cpp.tpl"
+
+        def hls_context(self, values):
+            return {}
+
+    mock_path_obj = MagicMock()
+    mock_path_obj.read_text.return_value = "Hello ${unmatched"
+
+    with (
+        pytest.raises(HLSTemplateRenderError, match="invalid for operator"),
+        patch(
+            "edgelstm.codegen.hls.generator.resolve_hls_template_path",
+            return_value=mock_path_obj,
+        ),
+    ):
+        render_operator_hls(BadOp(op_id="bad1", inputs=[], outputs=[]), {})
+
+
+def test_render_operator_hls_empty_context():
+    class EmptyCtxOp(Operator):
+        OP_TYPE = "EmptyCtx"
+
+        def validate(self, values):
+            pass
+
+        def estimate_fpga_cost(self, values):
+            return FPGACost(latency_cycles=1)
+
+        def hls_template_path(self):
+            return "C:/empty.cpp.tpl"
+
+        def hls_context(self, values):
+            return {}
+
+    mock_path_obj = MagicMock()
+    mock_path_obj.read_text.return_value = "No variables here"
+
+    with patch(
+        "edgelstm.codegen.hls.generator.resolve_hls_template_path",
+        return_value=mock_path_obj,
+    ):
+        res = render_operator_hls(EmptyCtxOp(op_id="empty1", inputs=[], outputs=[]), {})
+    assert res == "No variables here"
