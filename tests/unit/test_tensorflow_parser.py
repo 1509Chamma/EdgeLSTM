@@ -1,10 +1,10 @@
-import os
-import pytest
-import tensorflow as tf
 from unittest.mock import MagicMock, patch
 
-from edgelstm.parsers.tensorflow.parser import TensorFlowParser
+import tensorflow as tf
+
 from edgelstm.ir.graph import Graph
+from edgelstm.parsers.tensorflow.parser import TensorFlowParser
+
 
 def test_tensorflow_parser_init():
     parser = TensorFlowParser()
