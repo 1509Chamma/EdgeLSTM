@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 class TensorFlowParser:
     """
-    Translates TensorFlow/Keras models into the EdgeLSTM Intermediate Representation (IR).
+    Translates TensorFlow/Keras models into the EdgeLSTM IR.
     
     It works by first exporting the model to an ONNX model using tf2onnx, 
     and then parsing the resulting ONNX model into an IR Graph.
@@ -43,6 +43,7 @@ class TensorFlowParser:
         try:
             import tensorflow as tf
             import tf2onnx
+            from tf2onnx import convert
         except ImportError:
             raise ImportError(
                 "TensorFlow and tf2onnx are required for TensorFlowParser. "
@@ -55,14 +56,14 @@ class TensorFlowParser:
             opset = export_kwargs.pop("opset", 14)
             
             if isinstance(model, tf.keras.Model):
-                tf2onnx.convert.from_keras(
+                convert.from_keras(
                     model,
                     opset=opset,
                     output_path=onnx_path,
                     **export_kwargs
                 )
             else:
-                tf2onnx.convert.from_tensorflow(
+                convert.from_function(
                     model,
                     opset=opset,
                     output_path=onnx_path,
