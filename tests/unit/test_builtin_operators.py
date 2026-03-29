@@ -1,9 +1,9 @@
 import pytest
 
-from edgelstm.ops.builtins import Add, Concat, Conv1D, MatMul, Sum
 from edgelstm.ir.op import FPGACost, InvalidOperatorInstanceError
 from edgelstm.ir.registry import get_default_registry
 from edgelstm.ir.value import Value, ValueType
+from edgelstm.ops.builtins import Add, Concat, Conv1D, MatMul, Sum
 
 
 def make_tensor(value_id, shape, axes=None, dtype="float32"):

@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 
-from edgelstm.ops.builtins import Add
 from edgelstm.codegen.hls.generator import (
     HLSTemplateNotFoundError,
     HLSTemplateRenderError,
@@ -13,6 +12,7 @@ from edgelstm.codegen.hls.generator import (
 )
 from edgelstm.ir.op import FPGACost, Operator
 from edgelstm.ir.value import Value, ValueType
+from edgelstm.ops.builtins import Add
 
 
 def make_tensor(value_id, shape, axes=None, dtype="float32"):
@@ -80,9 +80,7 @@ def test_resolve_hls_template_path_finds_repo_managed_builtin_template():
 
     template_path = resolve_hls_template_path(operator)
 
-    assert template_path == (
-        Path.cwd() / "hls" / "operators" / "add.cpp.tpl"
-    ).resolve()
+    assert template_path == (Path.cwd() / "hls" / "operators" / "add.cpp.tpl").resolve()
 
 
 def test_render_operator_hls_renders_builtin_template():

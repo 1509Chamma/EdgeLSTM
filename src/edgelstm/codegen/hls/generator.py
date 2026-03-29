@@ -8,6 +8,7 @@ from edgelstm.ir.op import Operator, OperatorError
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+
     from edgelstm.ir.value import Value
 
 

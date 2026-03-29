@@ -1,4 +1,12 @@
-from .device import FPGADevice, Resources, Memory, IO, Capabilities, Policies, DeviceRegistry
+from .device import (
+    IO,
+    Capabilities,
+    DeviceRegistry,
+    FPGADevice,
+    Memory,
+    Policies,
+    Resources,
+)
 
 __version__ = "0.1.0"
 

@@ -1,8 +1,9 @@
-import pytest
 import torch
 import torch.nn as nn
-from edgelstm.parsers.pytorch.parser import PyTorchParser
+
 from edgelstm.ir.graph import Graph
+from edgelstm.parsers.pytorch.parser import PyTorchParser
+
 
 class SimpleModule(nn.Module):
     def __init__(self):
@@ -13,17 +14,18 @@ class SimpleModule(nn.Module):
     def forward(self, x):
         return self.relu(self.fc(x))
 
+
 def test_pytorch_parser_converts_simple_module():
     parser = PyTorchParser()
     model = SimpleModule()
     example_input = torch.randn(1, 3)
-    
+
     graph = parser.parse_module(model, example_input)
-    
+
     assert isinstance(graph, Graph)
     assert len(graph.graph_inputs) == 1
     assert len(graph.graph_outputs) == 1
-    
+
     # Check if expected operators are present
     # Gemm in ONNX is converted to MatMul + Add by our parser
     ops_found = {op.operator_type() for op in graph.ops.values()}

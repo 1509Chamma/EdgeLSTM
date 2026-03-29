@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
 import onnx
 import onnx.numpy_helper
-from typing import TYPE_CHECKING, Any
 
 from edgelstm.ir.graph import Graph
 from edgelstm.ir.value import Value, ValueType
 
 if TYPE_CHECKING:
     from edgelstm.ir.registry import OperatorRegistry
+
 
 class ONNXParser:
     """
@@ -18,7 +20,7 @@ class ONNXParser:
     def __init__(
         self,
         registry: OperatorRegistry | None = None,
-        extra_op_mapping: dict[str, str] | None = None
+        extra_op_mapping: dict[str, str] | None = None,
     ) -> None:
         self.registry = registry
         self.op_mapping = {
@@ -57,13 +59,13 @@ class ONNXParser:
         """Resolve the IR operator type for a given ONNX operator name."""
         if onnx_op in self.op_mapping:
             return self.op_mapping[onnx_op]
-        
+
         if self.registry:
             registered = self.registry.list_registered()
             for reg_op in registered:
                 if reg_op.lower() == onnx_op.lower():
                     return reg_op
-        
+
         return None
 
     def parse(self, model_path: str) -> Graph:
@@ -75,8 +77,10 @@ class ONNXParser:
         """Convert an in-memory ONNX ModelProto to an IR Graph."""
         onnx_graph = model.graph
         values: dict[str, Value] = {}
-        ops: dict[str, Any] = {} # Using Any for now to avoid circular imports or strict typing before mapping
-        
+        ops: dict[str, Any] = (
+            {}
+        )  # Using Any for now to avoid circular imports or strict typing before mapping
+
         initializers = {init.name for init in onnx_graph.initializer}
         graph_inputs = []
         for inp in onnx_graph.input:
@@ -104,7 +108,7 @@ class ONNXParser:
                 shape=shape,
                 axes=[f"dim_{i}" for i in range(len(shape))],
             )
-            
+
         for node in onnx_graph.node:
             onnx_op = node.op_type
             op_type = self._get_ir_op_type(onnx_op)
@@ -112,8 +116,10 @@ class ONNXParser:
                 raise ValueError(f"Unsupported ONNX operator: {onnx_op}")
 
             op_id = node.name or f"{op_type}_{len(ops)}"
-            attrs = {attr.name: self._get_onnx_attribute(attr) for attr in node.attribute}
-            
+            attrs = {
+                attr.name: self._get_onnx_attribute(attr) for attr in node.attribute
+            }
+
             # Special handling for Gemm: Map it to MatMul (+ Add if bias present)
             if onnx_op == "Gemm":
                 matmul_out = f"{op_id}_matmul_out"
@@ -130,13 +136,28 @@ class ONNXParser:
                         axes=[lhs.axes[0], rhs.axes[1]],
                     )
 
-                ops[f"{op_id}_matmul"] = ("MatMul", [node.input[0], node.input[1]], [matmul_out], {})
+                ops[f"{op_id}_matmul"] = (
+                    "MatMul",
+                    [node.input[0], node.input[1]],
+                    [matmul_out],
+                    {},
+                )
 
                 if len(node.input) > 2:
-                    ops[op_id] = ("Add", [matmul_out, node.input[2]], list(node.output), {})
+                    ops[op_id] = (
+                        "Add",
+                        [matmul_out, node.input[2]],
+                        list(node.output),
+                        {},
+                    )
                 else:
                     ops.pop(f"{op_id}_matmul")
-                    ops[op_id] = ("MatMul", [node.input[0], node.input[1]], list(node.output), {})
+                    ops[op_id] = (
+                        "MatMul",
+                        [node.input[0], node.input[1]],
+                        list(node.output),
+                        {},
+                    )
                 continue
 
             # Special handling for LSTM hidden_size
@@ -148,7 +169,6 @@ class ONNXParser:
 
             ops[op_id] = (op_type, list(node.input), list(node.output), attrs)
 
-        
         graph_outputs = [out.name for out in onnx_graph.output]
         for out in onnx_graph.output:
             if out.name not in values:
@@ -165,10 +185,10 @@ class ONNXParser:
         # 5. Build IR Graph
         ir_graph = Graph(
             values=values,
-            ops={}, # Will fill via create_operator
+            ops={},  # Will fill via create_operator
             graph_inputs=graph_inputs,
             graph_outputs=graph_outputs,
-            registry=self.registry
+            registry=self.registry,
         )
 
         for op_id, (op_type, inputs, outputs, attrs) in ops.items():
@@ -177,7 +197,7 @@ class ONNXParser:
                 op_id=op_id,
                 inputs=inputs,
                 outputs=outputs,
-                attrs=attrs
+                attrs=attrs,
             )
 
         return ir_graph

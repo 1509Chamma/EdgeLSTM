@@ -1,4 +1,4 @@
-from edgelstm.device import FPGADevice, Resources, Memory, Policies
+from edgelstm.device import FPGADevice, Memory, Policies, Resources
 
 
 class TestFPGADeviceIntegration:
@@ -22,8 +22,12 @@ class TestFPGADeviceIntegration:
             vendor="Xilinx",
             part_number="xcu250-figd2104-2L",
             resources=Resources(luts=1728000, ffs=3456000, dsps=6144, bram_36k=2688),
-            memory=Memory(on_chip_kb=86016, external_bandwidth_gbps=76.8, external_latency_ns=10.0),
-            policies=Policies(max_clock_mhz=300.0, target_clock_mhz=250.0, power_budget_w=75.0),
+            memory=Memory(
+                on_chip_kb=86016, external_bandwidth_gbps=76.8, external_latency_ns=10.0
+            ),
+            policies=Policies(
+                max_clock_mhz=300.0, target_clock_mhz=250.0, power_budget_w=75.0
+            ),
         )
 
         device_dict = device1.to_dict()
