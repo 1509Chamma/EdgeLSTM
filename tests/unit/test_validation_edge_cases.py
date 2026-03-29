@@ -145,12 +145,11 @@ def test_graph_duplicate_value_id():
     """Graphs with duplicate value IDs should fail."""
     graph = Graph({"v1": make_val("v1")}, {}, ["v1"], [])
 
+    # The validator now checks list(graph.values.keys()) and uses Counter.
+    # We can simulate duplicates by providing a list with duplicates to keys().
     class DuplicateDict(dict):
-        def __iter__(self):
-            yield from ["v1", "v1"]
-
-        def keys(self):
-            return super().keys()
+        def keys(self):  # type: ignore
+            return ["v1", "v1"]
 
     graph.values = DuplicateDict({"v1": make_val("v1")})  # type: ignore
     with pytest.raises(GraphValidationError, match="Duplicate value_id found: v1"):
@@ -162,11 +161,8 @@ def test_graph_duplicate_op_id():
     graph = Graph({"v1": make_val("v1")}, {}, ["v1"], [])
 
     class DuplicateOpDict(dict):
-        def __iter__(self):
-            yield from ["op1", "op1"]
-
-        def keys(self):
-            return super().keys()
+        def keys(self):  # type: ignore
+            return ["op1", "op1"]
 
     graph.ops = DuplicateOpDict(  # type: ignore
         {"op1": DummyOp(op_id="op1", inputs=["v1"], outputs=["v1"])}
