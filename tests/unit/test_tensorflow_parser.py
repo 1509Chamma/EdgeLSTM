@@ -10,7 +10,7 @@ def test_tensorflow_parser_init():
     parser = TensorFlowParser()
     assert parser.onnx_parser is not None
 
-@patch("edgelstm.parsers.tensorflow.parser.convert.from_keras")
+@patch("tf2onnx.convert.from_keras")
 @patch("os.path.exists")
 def test_parse_model_calls_tf2onnx(mock_exists, mock_tf2onnx):
     # Setup mocks
@@ -25,6 +25,7 @@ def test_parse_model_calls_tf2onnx(mock_exists, mock_tf2onnx):
     # Act
     graph = parser.parse_model(model)
     
+
     # Assert
     assert isinstance(graph, Graph)
     mock_tf2onnx.assert_called_once()
