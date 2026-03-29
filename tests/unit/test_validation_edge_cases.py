@@ -31,16 +31,16 @@ class DummyOp(Operator):
 
 def make_val(
     vid,
-    shape=...,
-    axes=...,
+    shape=None,
+    axes=None,
     producer=None,
     dtype="float32",
     vtype=ValueType.TENSOR,
     quant=None,
 ):
-    if shape is ...:
+    if shape is None:
         shape = [1]
-    if axes is ...:
+    if axes is None:
         axes = ["N"]
     return Value(
         value_id=vid,
@@ -70,11 +70,9 @@ def test_value_single_element():
 @pytest.mark.parametrize(
     "shape,axes,err_match",
     [
-        (None, ["N"], "shape must be a list"),
         ([0], ["N"], "positive integer"),
         ([-1], ["N"], "positive integer"),
         ([1.5], ["N"], "positive integer"),
-        ([1], None, "axes must be a list"),
         ([1], ["N", "C"], r"axes length \(2\) must match shape length \(1\)"),
     ],
 )
@@ -83,6 +81,23 @@ def test_value_invalid_shape_axes(shape, axes, err_match):
     val = make_val("v1", shape=shape, axes=axes)
     graph = Graph({"v1": val}, {}, ["v1"], [])
     with pytest.raises(ValueValidationError, match=err_match):
+        validate_values(graph)
+
+
+def test_value_missing_shape():
+    """Value shape must be a list."""
+    # Manually bypass make_val to test raw Value validation
+    val = Value("v1", ValueType.TENSOR, "float32", shape=None, axes=["N"])  # type: ignore
+    graph = Graph({"v1": val}, {}, ["v1"], [])
+    with pytest.raises(ValueValidationError, match="shape must be a list"):
+        validate_values(graph)
+
+
+def test_value_missing_axes():
+    """Value axes must be a list."""
+    val = Value("v1", ValueType.TENSOR, "float32", shape=[1], axes=None)  # type: ignore
+    graph = Graph({"v1": val}, {}, ["v1"], [])
+    with pytest.raises(ValueValidationError, match="axes must be a list"):
         validate_values(graph)
 
 
@@ -131,10 +146,13 @@ def test_graph_duplicate_value_id():
     graph = Graph({"v1": make_val("v1")}, {}, ["v1"], [])
 
     class DuplicateDict(dict):
-        def keys(self):
-            return ["v1", "v1"]  # type: ignore
+        def __iter__(self):
+            yield from ["v1", "v1"]
 
-    graph.values = DuplicateDict({"v1": make_val("v1")})
+        def keys(self):
+            return super().keys()
+
+    graph.values = DuplicateDict({"v1": make_val("v1")})  # type: ignore
     with pytest.raises(GraphValidationError, match="Duplicate value_id found: v1"):
         validate_graph(graph)
 
@@ -144,10 +162,13 @@ def test_graph_duplicate_op_id():
     graph = Graph({"v1": make_val("v1")}, {}, ["v1"], [])
 
     class DuplicateOpDict(dict):
-        def keys(self):
-            return ["op1", "op1"]  # type: ignore
+        def __iter__(self):
+            yield from ["op1", "op1"]
 
-    graph.ops = DuplicateOpDict(
+        def keys(self):
+            return super().keys()
+
+    graph.ops = DuplicateOpDict(  # type: ignore
         {"op1": DummyOp(op_id="op1", inputs=["v1"], outputs=["v1"])}
     )
     with pytest.raises(GraphValidationError, match="Duplicate op_id found: op1"):
