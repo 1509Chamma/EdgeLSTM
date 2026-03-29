@@ -1,6 +1,5 @@
-from .device import FPGADevice, Resources, Memory, IO, Capabilities, Policies, DeviceRegistry
-
-__version__ = "0.1.0"
+from .board import FPGADevice, Resources, Memory, IO, Capabilities, Policies
+from .registry import DeviceRegistry
 
 __all__ = [
     "FPGADevice",

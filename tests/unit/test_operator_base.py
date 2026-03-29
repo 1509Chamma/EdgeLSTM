@@ -4,13 +4,13 @@ from typing import Any, cast
 
 import pytest
 
-from ir_graph.op import (
+from edgelstm.ir.op import (
     FPGACost,
     InvalidOperatorDefinitionError,
     InvalidOperatorInstanceError,
     Operator,
 )
-from ir_graph.value import Value
+from edgelstm.ir.value import Value
 
 
 class DummyOperator(Operator):

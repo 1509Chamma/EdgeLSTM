@@ -1,5 +1,4 @@
 from .graph import Graph
-from .hls import render_operator_hls, resolve_hls_template_path
 from .op import (
     FPGACost,
     InvalidOperatorDefinitionError,
@@ -12,7 +11,7 @@ from .registry import (
     OperatorRegistry,
     OperatorRegistryError,
     UnknownOperatorError,
-    default_registry,
+    get_default_registry,
 )
 from .value import Value, ValueType
 
@@ -29,7 +28,5 @@ __all__ = [
     "UnknownOperatorError",
     "Value",
     "ValueType",
-    "default_registry",
-    "render_operator_hls",
-    "resolve_hls_template_path",
+    "get_default_registry",
 ]

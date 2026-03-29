@@ -4,8 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from edgelstm.device import FPGADevice
-from edgelstm.registry import DeviceRegistry
+from edgelstm.device import FPGADevice, DeviceRegistry
 
 
 class TestDeviceRegistryIntegration:

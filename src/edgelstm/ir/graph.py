@@ -1,8 +1,11 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 
 from .op import Operator
-from .registry import OperatorRegistry, default_registry
 from .value import Value
+
+if TYPE_CHECKING:
+    from .registry import OperatorRegistry
 
 
 class Graph:
@@ -34,7 +37,12 @@ class Graph:
         self.graph_inputs = list(graph_inputs)
         self.graph_outputs = list(graph_outputs)
         self.states = dict(states) if states is not None else {}
-        self.registry = registry if registry is not None else default_registry
+        if registry is not None:
+            self.registry = registry
+        else:
+            from .registry import get_default_registry
+
+            self.registry = get_default_registry()
 
         for op_id, operator in ops.items():
             self._store_operator(op_id, operator)

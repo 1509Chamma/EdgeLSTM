@@ -4,15 +4,15 @@ from pathlib import Path
 
 import pytest
 
-from ir_graph.builtins import Add
-from ir_graph.hls import (
+from edgelstm.ops.builtins import Add
+from edgelstm.codegen.hls.generator import (
     HLSTemplateNotFoundError,
     HLSTemplateRenderError,
     render_operator_hls,
     resolve_hls_template_path,
 )
-from ir_graph.op import FPGACost, Operator
-from ir_graph.value import Value, ValueType
+from edgelstm.ir.op import FPGACost, Operator
+from edgelstm.ir.value import Value, ValueType
 
 
 def make_tensor(value_id, shape, axes=None, dtype="float32"):

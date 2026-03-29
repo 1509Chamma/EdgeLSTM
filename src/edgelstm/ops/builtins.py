@@ -5,11 +5,11 @@ import re
 from collections.abc import Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, ClassVar, TypeGuard
 
-from .op import FPGACost, InvalidOperatorInstanceError, Operator
-from .value import Value, ValueType
+from edgelstm.ir.op import FPGACost, InvalidOperatorInstanceError, Operator
+from edgelstm.ir.value import Value, ValueType
 
 if TYPE_CHECKING:
-    from .registry import OperatorRegistry
+    from edgelstm.ir.registry import OperatorRegistry
 
 
 def _snake_case(name: str) -> str:
@@ -899,6 +899,82 @@ class Shift(BuiltinOperator):
         )
 
 
+class LSTM(BuiltinOperator):
+    OP_TYPE = "LSTM"
+
+    def validate(self, values: Mapping[str, Value]) -> None:
+        self._require_input_count(range(3, 9))
+        self._require_output_count(range(0, 4))
+        input_values = self._input_values(values)
+        x = input_values[0]
+        w = input_values[1]
+        r = input_values[2]
+
+        self._require_tensor(x, "input[0] (X)")
+        self._require_tensor(w, "input[1] (W)")
+        self._require_tensor(r, "input[2] (R)")
+
+        if len(x.shape) != 3:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} expects rank-3 input X [seq_len, batch, input_size]"
+            )
+        seq_len, batch, input_size = x.shape
+
+        direction = self.attrs.get("direction", "forward")
+        num_directions = 2 if direction == "bidirectional" else 1
+        hidden_size = self._require_int_attr("hidden_size")
+
+        if w.shape != [num_directions, 4 * hidden_size, input_size]:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} expects weight W shape "
+                f"[{num_directions}, {4 * hidden_size}, {input_size}], "
+                f"got {w.shape}"
+            )
+
+        if r.shape != [num_directions, 4 * hidden_size, hidden_size]:
+            raise InvalidOperatorInstanceError(
+                f"{self.op_type} expects recurrence R shape "
+                f"[{num_directions}, {4 * hidden_size}, {hidden_size}], "
+                f"got {r.shape}"
+            )
+
+        # Optional inputs
+        if len(input_values) > 3:  # Bias
+            # ... bias validation if needed
+            pass
+
+        # Validate outputs
+        output_values = [
+            self._lookup_value(values, value_id, "output") for value_id in self.outputs
+        ]
+        if output_values:
+            y = output_values[0]
+            if y.shape != [seq_len, num_directions, batch, hidden_size]:
+                raise InvalidOperatorInstanceError(
+                    f"{self.op_type} expects output Y shape "
+                    f"[{seq_len}, {num_directions}, {batch}, {hidden_size}], "
+                    f"got {y.shape}"
+                )
+
+    def estimate_fpga_cost(self, values: Mapping[str, Value]) -> FPGACost:
+        input_value = self._input_values(values)[0]
+        seq_len, batch, input_size = input_value.shape
+        hidden_size = self._require_int_attr("hidden_size")
+        direction = self.attrs.get("direction", "forward")
+        num_directions = 2 if direction == "bidirectional" else 1
+
+        # Heuristic: LSTM is roughly 4 MatMuls per orientation per step
+        work = seq_len * batch * num_directions * 4 * (input_size + hidden_size) * hidden_size
+        return FPGACost(
+            latency_cycles=max(10, work // 4),
+            initiation_interval=1,
+            dsp=max(4, (input_size + hidden_size) // 16),
+            lut=max(100, hidden_size * 10),
+            ff=max(100, hidden_size * 10),
+            metadata={"heuristic": "lstm"},
+        )
+
+
 BUILTIN_OPERATORS = [
     MatMul,
     Add,
@@ -921,6 +997,7 @@ BUILTIN_OPERATORS = [
     Conv1D,
     Pad,
     Shift,
+    LSTM,
 ]
 
 BUILTIN_OPERATOR_TYPES = [

@@ -2,8 +2,7 @@ import pytest
 import tempfile
 import json
 from pathlib import Path
-from edgelstm.registry import DeviceRegistry
-from edgelstm.device import FPGADevice
+from edgelstm.device import DeviceRegistry, FPGADevice
 
 
 class TestDeviceRegistry:

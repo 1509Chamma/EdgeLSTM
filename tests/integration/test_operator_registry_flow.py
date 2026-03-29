@@ -2,12 +2,12 @@ import math
 from collections.abc import Mapping
 from typing import cast
 
-from ir_graph.builtins import register_builtin_operators
-from ir_graph.graph import Graph
-from ir_graph.hls import render_operator_hls
-from ir_graph.op import FPGACost, InvalidOperatorInstanceError, Operator
-from ir_graph.registry import OperatorRegistry
-from ir_graph.value import Value, ValueType
+from edgelstm.ops.builtins import register_builtin_operators
+from edgelstm.ir.graph import Graph
+from edgelstm.codegen.hls.generator import render_operator_hls
+from edgelstm.ir.op import FPGACost, InvalidOperatorInstanceError, Operator
+from edgelstm.ir.registry import OperatorRegistry
+from edgelstm.ir.value import Value, ValueType
 
 
 def make_tensor(value_id, shape, axes=None, dtype="float32"):
