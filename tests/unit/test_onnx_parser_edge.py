@@ -55,8 +55,10 @@ def test_model_with_only_constants(parser):
     assert ir_graph.values["const_val"].shape == [2]
 
 def test_incorrect_attribute_types(parser):
-    # Create an attribute with an unhandled type (like a sparse tensor without the others set)
-    # We can just manually construct an AttributeProto that has none of the covered fields
+    # Create an attribute with an unhandled type (like a sparse tensor
+    # without the others set)
+    # We can just manually construct an AttributeProto that has none
+    # of the covered fields
     attr = AttributeProto()
     attr.name = "weird_attr"
     attr.type = AttributeProto.TENSOR # but we don't set .t

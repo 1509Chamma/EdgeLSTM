@@ -1,0 +1,56 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.0.2, pluggy-1.6.0
+rootdir: C:\Users\abudi\Personal Projects\EdgeLSTM
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 22 items
+
+tests\unit\test_validation_edge_cases.py ..F...F...............          [100%]
+
+================================== FAILURES ===================================
+_______ test_value_invalid_shape_axes[None-axes0-shape must be a list] ________
+
+shape = None, axes = ['N'], err_match = 'shape must be a list'
+
+    @pytest.mark.parametrize("shape,axes,err_match", [
+        (None, ["N"], "shape must be a list"),
+        ([0], ["N"], "positive integer"),
+        ([-1], ["N"], "positive integer"),
+        ([1.5], ["N"], "positive integer"),
+        ([1], None, "axes must be a list"),
+        ([1], ["N", "C"], r"axes length \(2\) must match shape length \(1\)"),
+    ])
+    def test_value_invalid_shape_axes(shape, axes, err_match):
+        """Value shape and axes should be validated properly."""
+        val = make_val("v1", shape=shape, axes=axes)
+        graph = Graph({"v1": val}, {}, ["v1"], [])
+>       with pytest.raises(ValueValidationError, match=err_match):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'edgelstm.ir.validation.ValueValidationError'>
+
+tests\unit\test_validation_edge_cases.py:68: Failed
+_______ test_value_invalid_shape_axes[shape4-None-axes must be a list] ________
+
+shape = [1], axes = None, err_match = 'axes must be a list'
+
+    @pytest.mark.parametrize("shape,axes,err_match", [
+        (None, ["N"], "shape must be a list"),
+        ([0], ["N"], "positive integer"),
+        ([-1], ["N"], "positive integer"),
+        ([1.5], ["N"], "positive integer"),
+        ([1], None, "axes must be a list"),
+        ([1], ["N", "C"], r"axes length \(2\) must match shape length \(1\)"),
+    ])
+    def test_value_invalid_shape_axes(shape, axes, err_match):
+        """Value shape and axes should be validated properly."""
+        val = make_val("v1", shape=shape, axes=axes)
+        graph = Graph({"v1": val}, {}, ["v1"], [])
+>       with pytest.raises(ValueValidationError, match=err_match):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'edgelstm.ir.validation.ValueValidationError'>
+
+tests\unit\test_validation_edge_cases.py:68: Failed
+=========================== short test summary info ===========================
+FAILED tests/unit/test_validation_edge_cases.py::test_value_invalid_shape_axes[None-axes0-shape must be a list]
+FAILED tests/unit/test_validation_edge_cases.py::test_value_invalid_shape_axes[shape4-None-axes must be a list]
+======================== 2 failed, 20 passed in 0.34s =========================

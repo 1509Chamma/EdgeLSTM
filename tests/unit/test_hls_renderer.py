@@ -1,6 +1,7 @@
 import re
 from collections.abc import Mapping
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -148,7 +149,6 @@ def test_resolve_hls_template_absolute_path_missing():
     with pytest.raises(HLSTemplateNotFoundError, match="does not exist for operator"):
         resolve_hls_template_path(AbsoluteMissingOp(op_id="op1", inputs=[], outputs=[]))
 
-from unittest.mock import MagicMock, patch
 
 def test_render_operator_hls_malformed_syntax():
     class BadOp(Operator):

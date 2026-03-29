@@ -18,8 +18,28 @@ class DummyOp(Operator):
     def hls_template_path(self): return ""
     def hls_context(self, values): return {}
 
-def make_val(vid, shape=[1], axes=["N"], producer=None, dtype="float32", vtype=ValueType.TENSOR, quant=None):
-    return Value(value_id=vid, vtype=vtype, dtype=dtype, shape=shape, axes=axes, producer_op_id=producer, quant=quant)
+def make_val(
+    vid,
+    shape=...,
+    axes=...,
+    producer=None,
+    dtype="float32",
+    vtype=ValueType.TENSOR,
+    quant=None,
+):
+    if shape is ...:
+        shape = [1]
+    if axes is ...:
+        axes = ["N"]
+    return Value(
+        value_id=vid,
+        vtype=vtype,
+        dtype=dtype,
+        shape=shape,
+        axes=axes,
+        producer_op_id=producer,
+        quant=quant,
+    )
 
 def test_value_zero_dimensional():
     """Zero-dimensional tensors (shape = []) should be valid."""
