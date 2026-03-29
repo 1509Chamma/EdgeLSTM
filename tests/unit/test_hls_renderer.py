@@ -157,7 +157,8 @@ def test_resolve_hls_template_absolute_path_missing():
             return {}
 
     with pytest.raises(
-        HLSTemplateNotFoundError, match="(does not exist|could not be resolved) for operator"
+        HLSTemplateNotFoundError,
+        match="(does not exist|could not be resolved) for operator",
     ):
         resolve_hls_template_path(AbsoluteMissingOp(op_id="op1", inputs=[], outputs=[]))
 

@@ -1,0 +1,27 @@
+global:
+  bit_width: 8
+  scheme: symmetric
+  fixed_point:
+    integer_bits: 3
+    fractional_bits: 5
+
+operators:
+  LSTM:
+    bit_width: 12
+    scheme: asymmetric
+    fixed_point:
+      integer_bits: 4
+      fractional_bits: 8
+
+  Dense:
+    bit_width: 6
+    fixed_point:
+      integer_bits: 2
+      fractional_bits: 4
+
+tensors:
+  hidden_state:
+    bit_width: 16
+    fixed_point:
+      integer_bits: 6
+      fractional_bits: 10
