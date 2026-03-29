@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM python:3.14-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -10,9 +10,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     clang-tidy \
     cppcheck \
     git \
-    python3 \
-    python3-pip \
-    python-is-python3 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /tmp/requirements.txt
