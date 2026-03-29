@@ -3,8 +3,8 @@ import os
 import onnx
 import onnx.helper as helper
 from onnx import TensorProto
-from edgelstm.frontend.onnx_parser import ONNXParser
-from ir_graph.value import ValueType
+from edgelstm.parsers.onnx.parser import ONNXParser
+from edgelstm.ir.value import ValueType
 
 class TestONNXParser(unittest.TestCase):
     def setUp(self):

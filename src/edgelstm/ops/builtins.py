@@ -5,11 +5,11 @@ import re
 from collections.abc import Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, ClassVar, TypeGuard
 
-from .op import FPGACost, InvalidOperatorInstanceError, Operator
-from .value import Value, ValueType
+from edgelstm.ir.op import FPGACost, InvalidOperatorInstanceError, Operator
+from edgelstm.ir.value import Value, ValueType
 
 if TYPE_CHECKING:
-    from .registry import OperatorRegistry
+    from edgelstm.ir.registry import OperatorRegistry
 
 
 def _snake_case(name: str) -> str:

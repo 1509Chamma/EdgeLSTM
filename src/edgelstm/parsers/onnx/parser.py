@@ -4,11 +4,11 @@ import onnx
 import onnx.numpy_helper
 from typing import TYPE_CHECKING, Any
 
-from ir_graph.graph import Graph
-from ir_graph.value import Value, ValueType
+from edgelstm.ir.graph import Graph
+from edgelstm.ir.value import Value, ValueType
 
 if TYPE_CHECKING:
-    from ir_graph.registry import OperatorRegistry
+    from edgelstm.ops.registry import OperatorRegistry
 
 class ONNXParser:
     """

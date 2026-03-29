@@ -4,15 +4,14 @@ from pathlib import Path
 from string import Template
 from typing import TYPE_CHECKING
 
-from .op import Operator, OperatorError
+from edgelstm.ir.op import Operator, OperatorError
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+    from edgelstm.ir.value import Value
 
-    from .value import Value
 
-
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
 
 
 class HLSRenderError(OperatorError):

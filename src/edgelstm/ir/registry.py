@@ -78,10 +78,18 @@ class OperatorRegistry:
 def _build_default_registry() -> OperatorRegistry:
     registry = OperatorRegistry()
 
-    from .builtins import register_builtin_operators
+    from edgelstm.ops.builtins import register_builtin_operators
 
     register_builtin_operators(registry)
     return registry
 
 
-default_registry = _build_default_registry()
+_DEFAULT_REGISTRY_INSTANCE: OperatorRegistry | None = None
+
+
+def get_default_registry() -> OperatorRegistry:
+    """Lazily build and return the singleton default operator registry."""
+    global _DEFAULT_REGISTRY_INSTANCE
+    if _DEFAULT_REGISTRY_INSTANCE is None:
+        _DEFAULT_REGISTRY_INSTANCE = _build_default_registry()
+    return _DEFAULT_REGISTRY_INSTANCE

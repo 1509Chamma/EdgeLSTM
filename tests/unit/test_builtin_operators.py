@@ -1,9 +1,9 @@
 import pytest
 
-from ir_graph.builtins import Add, Concat, Conv1D, MatMul, Sum
-from ir_graph.op import FPGACost, InvalidOperatorInstanceError
-from ir_graph.registry import default_registry
-from ir_graph.value import Value, ValueType
+from edgelstm.ops.builtins import Add, Concat, Conv1D, MatMul, Sum
+from edgelstm.ir.op import FPGACost, InvalidOperatorInstanceError
+from edgelstm.ir.registry import get_default_registry
+from edgelstm.ir.value import Value, ValueType
 
 
 def make_tensor(value_id, shape, axes=None, dtype="float32"):
@@ -29,7 +29,7 @@ def make_scalar(value_id, dtype="float32"):
 
 
 def test_default_registry_creates_builtin_operator_instances():
-    operator = default_registry.create(
+    operator = get_default_registry().create(
         "Add",
         op_id="add_0",
         inputs=["lhs", "rhs"],

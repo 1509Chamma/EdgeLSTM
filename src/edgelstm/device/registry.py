@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-from .device import FPGADevice
+from .board import FPGADevice
 
 
 class DeviceRegistry:
@@ -13,7 +13,7 @@ class DeviceRegistry:
     def __init__(self, config_dir: Optional[str] = None):
 
         if config_dir is None:
-            package_root = Path(__file__).parent.parent.parent
+            package_root = Path(__file__).resolve().parents[3]
             config_dir = str(package_root / "configs" / "devices")
         
         self.config_dir = Path(config_dir)

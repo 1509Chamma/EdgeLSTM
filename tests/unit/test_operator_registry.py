@@ -4,19 +4,19 @@ from typing import Any, cast
 
 import pytest
 
-from ir_graph.builtins import BUILTIN_OPERATOR_TYPES
-from ir_graph.op import (
+from edgelstm.ops.builtins import BUILTIN_OPERATOR_TYPES
+from edgelstm.ir.op import (
     FPGACost,
     InvalidOperatorDefinitionError,
     Operator,
 )
-from ir_graph.registry import (
+from edgelstm.ir.registry import (
     DuplicateOperatorError,
     OperatorRegistry,
     UnknownOperatorError,
-    default_registry,
+    get_default_registry,
 )
-from ir_graph.value import Value
+from edgelstm.ir.value import Value
 
 
 class ScaleOperator(Operator):
@@ -72,7 +72,7 @@ class AbstractRegisteredOperator(Operator):
 
 
 def test_default_registry_preloads_builtin_operator_types():
-    assert default_registry.list_registered() == sorted(BUILTIN_OPERATOR_TYPES)
+    assert get_default_registry().list_registered() == sorted(BUILTIN_OPERATOR_TYPES)
 
 
 def test_registry_register_and_get_returns_operator_class():
