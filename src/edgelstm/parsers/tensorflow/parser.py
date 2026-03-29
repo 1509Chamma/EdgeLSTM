@@ -42,13 +42,12 @@ class TensorFlowParser:
         # Delayed imports as TF is heavy and might be missing in some environments
         try:
             import tensorflow as tf
-            import tf2onnx
             from tf2onnx import convert
         except ImportError:
             raise ImportError(
                 "TensorFlow and tf2onnx are required for TensorFlowParser. "
                 "Install them with `pip install tensorflow tf2onnx`."
-            )
+            ) from None # Supress ModuleNotFoundError 
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             onnx_path = os.path.join(tmp_dir, "model.onnx")
