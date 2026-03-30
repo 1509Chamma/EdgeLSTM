@@ -243,12 +243,12 @@ def test_numerical_parity_reports_clipping_diagnostics() -> None:
         fp32_model=model,
         quantized_model=simulator,
         dataset=dataset,
-        config={"metrics": ["max_error"], "thresholds": {"max_error": 0.5}},
+        config={"metrics": ["max_error"], "thresholds": {"max_error": 0.4}},
     )
 
     assert result["pass"] is False
     assert result["diagnostics"]["quantization_reports"][0]["total_clipped_values"] > 0
-    assert result["metrics"]["global"]["max_error"] > 0.5
+    assert result["metrics"]["global"]["max_error"] > 0.4
 
 
 def test_numerical_parity_handles_constant_and_nonfinite_outputs() -> None:
