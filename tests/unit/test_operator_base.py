@@ -4,13 +4,13 @@ from typing import Any, cast
 
 import pytest
 
-from edgelstm.ir.op import (
+from edge_lstm.ir.op import (
     FPGACost,
     InvalidOperatorDefinitionError,
     InvalidOperatorInstanceError,
     Operator,
 )
-from edgelstm.ir.value import Value
+from edge_lstm.ir.value import Value
 
 
 class DummyOperator(Operator):

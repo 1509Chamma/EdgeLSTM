@@ -5,14 +5,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from edge_lstm.ir.op import FPGACost, Operator
+from edge_lstm.ir.value import Value, ValueType
 from edgelstm.codegen.hls.generator import (
     HLSTemplateNotFoundError,
     HLSTemplateRenderError,
     render_operator_hls,
     resolve_hls_template_path,
 )
-from edgelstm.ir.op import FPGACost, Operator
-from edgelstm.ir.value import Value, ValueType
 from edgelstm.ops.builtins import Add
 
 

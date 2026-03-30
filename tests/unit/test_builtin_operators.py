@@ -1,8 +1,8 @@
 import pytest
 
-from edgelstm.ir.op import FPGACost, InvalidOperatorInstanceError
-from edgelstm.ir.registry import get_default_registry
-from edgelstm.ir.value import Value, ValueType
+from edge_lstm.ir.op import FPGACost, InvalidOperatorInstanceError
+from edge_lstm.ir.registry import get_default_registry
+from edge_lstm.ir.value import Value, ValueType
 from edgelstm.ops.builtins import Add, Concat, Conv1D, MatMul, Sum
 
 

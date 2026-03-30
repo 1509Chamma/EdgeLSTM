@@ -1,6 +1,6 @@
 import pytest
 
-from edgelstm.ir.value import Value, ValueType
+from edge_lstm.ir.value import Value, ValueType
 from edgelstm.ops.builtins import (
     LSTM,
     Add,
@@ -45,7 +45,8 @@ def test_matmul_validation_edge_cases():
         "c": make_tensor("c", [2, 5]),
     }
     with pytest.raises(
-        InvalidOperatorInstanceError, match="requires lhs.shape\[1\] == rhs.shape\[0\]"
+        InvalidOperatorInstanceError,
+        match=r"requires lhs.shape\[1\] == rhs.shape\[0\]",
     ):
         op.validate(values)
 

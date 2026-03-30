@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from edgelstm.ir.graph import Graph
+from edge_lstm.ir.graph import Graph
 from edgelstm.parsers.pytorch.parser import PyTorchParser
 
 
