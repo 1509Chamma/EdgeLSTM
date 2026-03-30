@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import copy
 import heapq
+import importlib
 import math
 from collections.abc import Iterable, Mapping, Sequence
 from contextlib import ExitStack
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol, TypedDict, cast
 
 import numpy as np
 
@@ -22,6 +23,109 @@ if TYPE_CHECKING:
 
 
 DEFAULT_METRICS = ("mae", "mse", "max_error", "relative_error", "sqnr")
+
+
+class AbsErrorHistogram(TypedDict):
+    bins: list[float]
+    counts: list[int]
+
+
+class MetricSummary(TypedDict, total=False):
+    mae: float
+    mse: float
+    max_error: float
+    relative_error: float
+    sqnr: float
+    nonfinite_count: int
+    num_elements: int
+    abs_error_histogram: AbsErrorHistogram
+
+
+class Violation(TypedDict, total=False):
+    scope: str
+    scope_name: str
+    sample_index: int
+    metric: str
+    actual: object
+    expected: object
+    threshold: float | int
+    message: str
+    item: str
+
+
+class LayerQuantizationReport(TypedDict):
+    clipped_values: int
+
+
+class SimulationQuantizationReport(TypedDict):
+    total_clipped_values: int
+    layers: dict[str, LayerQuantizationReport]
+
+
+class SampleQuantizationReport(SimulationQuantizationReport):
+    sample_index: int
+
+
+class WorstSample(TypedDict):
+    sample_index: int
+    score: float
+    num_failures: int
+
+
+class DiagnosticsReport(TypedDict):
+    top_k_worst_samples: list[WorstSample]
+    failing_samples: list[int]
+    failing_layers: list[str]
+    highest_deviation_layer: str | None
+    sample_count: int
+    quantization_reports: list[SampleQuantizationReport]
+    ir: IRComparisonReport
+
+
+IRComparisonReport = TypedDict(
+    "IRComparisonReport",
+    {
+        "pass": bool,
+        "violations": list[Violation],
+        "summary": str,
+    },
+)
+
+MetricsReport = TypedDict(
+    "MetricsReport",
+    {
+        "global": MetricSummary,
+        "outputs": dict[str, MetricSummary],
+        "layers": dict[str, MetricSummary],
+    },
+)
+
+NumericalParityResult = TypedDict(
+    "NumericalParityResult",
+    {
+        "metrics": MetricsReport,
+        "pass": bool,
+        "violations": list[Violation],
+        "summary": str,
+        "diagnostics": DiagnosticsReport,
+    },
+)
+
+
+class _ONNXValueInfoLike(Protocol):
+    name: str
+
+
+class _ONNXSessionLike(Protocol):
+    def get_inputs(self) -> Sequence[_ONNXValueInfoLike]: ...
+
+    def get_outputs(self) -> Sequence[_ONNXValueInfoLike]: ...
+
+    def run(
+        self,
+        output_names: Sequence[str],
+        input_feed: Mapping[str, object],
+    ) -> Sequence[object]: ...
 
 
 @dataclass
@@ -50,29 +154,24 @@ class NumericalParityConfig:
         if isinstance(config, cls):
             return config
 
-        metrics_value = config.get("metrics", DEFAULT_METRICS)
-        layer_names_value = config.get("layer_names")
+        metrics_value = _coerce_str_sequence(config.get("metrics"), DEFAULT_METRICS)
+        layer_names_value = _coerce_optional_str_sequence(config.get("layer_names"))
         return cls(
-            metrics=tuple(str(metric) for metric in metrics_value),
-            thresholds={
-                str(metric): float(threshold)
-                for metric, threshold in dict(config.get("thresholds", {})).items()
-            },
-            relative_error_epsilon=float(config.get("relative_error_epsilon", 1e-8)),
-            top_k_worst=int(config.get("top_k_worst", 5)),
-            histogram_bins=config.get("histogram_bins"),
-            capture_layers=bool(config.get("capture_layers", True)),
-            layer_names=(
-                tuple(str(name) for name in layer_names_value)
-                if layer_names_value is not None
-                else None
+            metrics=metrics_value,
+            thresholds=_coerce_thresholds(config.get("thresholds")),
+            relative_error_epsilon=_coerce_float(
+                config.get("relative_error_epsilon"), 1e-8
             ),
+            top_k_worst=_coerce_int(config.get("top_k_worst"), 5),
+            histogram_bins=_coerce_histogram_bins(config.get("histogram_bins")),
+            capture_layers=bool(config.get("capture_layers", True)),
+            layer_names=layer_names_value,
             sample_adapter=config.get("sample_adapter"),
             fail_on_nonfinite=bool(config.get("fail_on_nonfinite", True)),
             enforce_eval_mode=bool(config.get("enforce_eval_mode", True)),
             compare_ir=bool(config.get("compare_ir", True)),
-            fp32_ir=config.get("fp32_ir"),
-            quantized_ir=config.get("quantized_ir"),
+            fp32_ir=cast(Graph | None, config.get("fp32_ir")),
+            quantized_ir=cast(Graph | None, config.get("quantized_ir")),
             ranking_metric=str(config.get("ranking_metric", "max_error")),
         )
 
@@ -84,6 +183,63 @@ class QuantizationSimulationResult:
     clipped_values: int
     scale: float
     zero_point: int
+
+
+def _coerce_str_sequence(
+    value: object | None, default: tuple[str, ...]
+) -> tuple[str, ...]:
+    if value is None:
+        return default
+    if isinstance(value, Sequence) and not isinstance(value, str | bytes):
+        return tuple(str(item) for item in value)
+    raise TypeError("config metrics must be a sequence of strings")
+
+
+def _coerce_optional_str_sequence(value: object | None) -> tuple[str, ...] | None:
+    if value is None:
+        return None
+    if isinstance(value, Sequence) and not isinstance(value, str | bytes):
+        return tuple(str(item) for item in value)
+    raise TypeError("config layer_names must be a sequence of strings")
+
+
+def _coerce_thresholds(value: object | None) -> dict[str, float]:
+    if value is None:
+        return {}
+    if not isinstance(value, Mapping):
+        raise TypeError("config thresholds must be a mapping")
+    return {
+        str(metric): _coerce_float(threshold)
+        for metric, threshold in value.items()
+    }
+
+
+def _coerce_float(value: object | None, default: float = 0.0) -> float:
+    if value is None:
+        return default
+    if isinstance(value, int | float):
+        return float(value)
+    raise TypeError("config value must be numeric")
+
+
+def _coerce_int(value: object | None, default: int = 0) -> int:
+    if value is None:
+        return default
+    if isinstance(value, int):
+        return value
+    raise TypeError("config value must be an integer")
+
+
+def _coerce_histogram_bins(
+    value: object | None,
+) -> int | Sequence[float] | None:
+    if value is None:
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, Sequence) and not isinstance(value, str | bytes):
+        return tuple(_coerce_float(item) for item in value)
+    raise TypeError("config histogram_bins must be an integer or numeric sequence")
 
 
 @dataclass
@@ -102,7 +258,7 @@ class _MetricAccumulator:
     histogram_counts: np.ndarray | None = None
     histogram_edges: np.ndarray | None = None
 
-    def update(self, reference: np.ndarray, candidate: np.ndarray) -> dict[str, float]:
+    def update(self, reference: np.ndarray, candidate: np.ndarray) -> MetricSummary:
         reference_arr = _as_float_array(reference)
         candidate_arr = _as_float_array(candidate)
         if reference_arr.shape != candidate_arr.shape:
@@ -158,7 +314,7 @@ class _MetricAccumulator:
             nonfinite_count=int(nonfinite_mask.sum()),
         )
 
-    def finalize(self) -> dict[str, object]:
+    def finalize(self) -> MetricSummary:
         metrics = _compute_metric_values(
             abs_error_sum=self.abs_error_sum,
             sq_error_sum=self.sq_error_sum,
@@ -221,7 +377,7 @@ class TorchQuantizedModelSimulator:
         self.quantize_inputs = quantize_inputs
         self.quantize_outputs = quantize_outputs
         self.quantize_weights = quantize_weights
-        self._last_quantization_report: dict[str, object] = {
+        self._last_quantization_report: SimulationQuantizationReport = {
             "total_clipped_values": 0,
             "layers": {},
         }
@@ -233,7 +389,7 @@ class TorchQuantizedModelSimulator:
         import torch
 
         total_clipped_values = 0
-        layer_reports: dict[str, dict[str, int]] = {}
+        layer_reports: dict[str, LayerQuantizationReport] = {}
         hooks: list[Any] = []
 
         def make_activation_hook(name: str):
@@ -278,7 +434,7 @@ class TorchQuantizedModelSimulator:
             for hook in hooks:
                 hook.remove()
 
-    def consume_last_quantization_report(self) -> dict[str, object]:
+    def consume_last_quantization_report(self) -> SimulationQuantizationReport:
         report = self._last_quantization_report
         self._last_quantization_report = {
             "total_clipped_values": 0,
@@ -318,6 +474,238 @@ class TorchQuantizedModelSimulator:
                     buffer.detach().cpu().numpy(), self.weight_spec
                 )
                 buffer.data.copy_(_numpy_to_like(quantized.dequantized, buffer))
+
+
+class ONNXRuntimeParityAdapter:
+    """
+    Adapter for ONNX Runtime inference sessions.
+
+    Layer capture is supported when the requested layer output names are
+    fetchable from the session, for example when an instrumented model exposes
+    internal tensors as graph outputs.
+    """
+
+    def __init__(
+        self,
+        session_or_model: object,
+        *,
+        input_names: Sequence[str] | None = None,
+        output_names: Sequence[str] | None = None,
+        layer_output_names: Sequence[str] | None = None,
+    ) -> None:
+        self._session = _resolve_onnx_session(session_or_model)
+        self.input_names = (
+            tuple(input_names)
+            if input_names is not None
+            else tuple(
+                value_info.name for value_info in self._session.get_inputs()
+            )
+        )
+        self.output_names = (
+            tuple(output_names)
+            if output_names is not None
+            else tuple(
+                value_info.name for value_info in self._session.get_outputs()
+            )
+        )
+        self.layer_output_names = tuple(layer_output_names or ())
+        self._parity_layer_model = self
+
+    @property
+    def training(self) -> bool:
+        return False
+
+    def eval(self) -> ONNXRuntimeParityAdapter:
+        return self
+
+    def train(self, mode: bool = True) -> ONNXRuntimeParityAdapter:
+        del mode
+        return self
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        output_map, _layer_map = self.parity_forward(
+            *args,
+            capture_layers=False,
+            layer_names=None,
+            **kwargs,
+        )
+        if len(self.output_names) == 1:
+            return output_map[self.output_names[0]]
+        return output_map
+
+    def parity_forward(
+        self,
+        *args: Any,
+        capture_layers: bool = True,
+        layer_names: Sequence[str] | None = None,
+        **kwargs: Any,
+    ) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
+        feeds = self._build_feeds(args, kwargs)
+        requested_layer_names = (
+            tuple(layer_names)
+            if layer_names is not None
+            else self.layer_output_names
+        )
+        fetch_names = list(self.output_names)
+        if capture_layers:
+            for name in requested_layer_names:
+                if name not in fetch_names:
+                    fetch_names.append(name)
+
+        session_outputs = self._session.run(fetch_names, feeds)
+        result_map = {
+            name: _as_float_array(value)
+            for name, value in zip(fetch_names, session_outputs, strict=False)
+        }
+        output_map = {name: result_map[name] for name in self.output_names}
+        layer_map = (
+            {
+                name: result_map[name]
+                for name in requested_layer_names
+                if name in result_map
+            }
+            if capture_layers
+            else {}
+        )
+        return output_map, layer_map
+
+    def _build_feeds(
+        self,
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+    ) -> dict[str, np.ndarray]:
+        if kwargs:
+            return {str(name): _as_float_array(value) for name, value in kwargs.items()}
+        if len(args) == 1 and isinstance(args[0], Mapping):
+            return {
+                str(name): _as_float_array(value)
+                for name, value in cast(Mapping[object, Any], args[0]).items()
+            }
+        if len(args) != len(self.input_names):
+            raise ValueError(
+                "ONNXRuntimeParityAdapter expected "
+                f"{len(self.input_names)} inputs but received {len(args)}"
+            )
+        return {
+            name: _as_float_array(value)
+            for name, value in zip(self.input_names, args, strict=False)
+        }
+
+
+class TensorFlowKerasParityAdapter:
+    """
+    Adapter for TensorFlow/Keras models.
+
+    Layer capture is available for built graph-style Keras models by constructing
+    auxiliary submodels that expose selected intermediate layer outputs.
+    """
+
+    def __init__(
+        self,
+        model: object,
+        *,
+        default_layer_names: Sequence[str] | None = None,
+    ) -> None:
+        try:
+            import tensorflow as tf
+        except ImportError as exc:  # pragma: no cover
+            raise ImportError(
+                "TensorFlowKerasParityAdapter requires TensorFlow to be installed."
+            ) from exc
+
+        if not isinstance(model, tf.keras.Model):
+            raise TypeError("model must be a tf.keras.Model instance")
+
+        self._tf = tf
+        self._model = model
+        self._default_layer_names = tuple(default_layer_names or ())
+        self._capture_model_cache: dict[tuple[str, ...], Any | None] = {}
+        self._training = False
+        self._parity_layer_model = self
+
+    @property
+    def training(self) -> bool:
+        return self._training
+
+    def eval(self) -> TensorFlowKerasParityAdapter:
+        self._training = False
+        return self
+
+    def train(self, mode: bool = True) -> TensorFlowKerasParityAdapter:
+        self._training = mode
+        return self
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        return self._call_model(*args, **kwargs)
+
+    def parity_forward(
+        self,
+        *args: Any,
+        capture_layers: bool = True,
+        layer_names: Sequence[str] | None = None,
+        **kwargs: Any,
+    ) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
+        output = self._call_model(*args, **kwargs)
+        output_map = _normalize_output_structure(output)
+        if not capture_layers:
+            return output_map, {}
+
+        selected_layer_names = self._resolve_layer_names(layer_names)
+        if not selected_layer_names:
+            return output_map, {}
+
+        capture_model = self._get_capture_model(selected_layer_names)
+        if capture_model is None:
+            return output_map, {}
+
+        captured = capture_model(*args, training=False, **kwargs)
+        if not isinstance(captured, list | tuple):
+            captured = (captured,)
+
+        layer_map: dict[str, np.ndarray] = {}
+        for name, value in zip(selected_layer_names, captured, strict=False):
+            normalized = _normalize_output_structure(value)
+            layer_map.update(
+                {
+                    f"{name}.{key}" if key != "output" else name: tensor
+                    for key, tensor in normalized.items()
+                }
+            )
+        return output_map, layer_map
+
+    def _call_model(self, *args: Any, **kwargs: Any) -> Any:
+        call_kwargs = dict(kwargs)
+        call_kwargs.setdefault("training", False)
+        return self._model(*args, **call_kwargs)
+
+    def _resolve_layer_names(
+        self,
+        layer_names: Sequence[str] | None,
+    ) -> tuple[str, ...]:
+        if layer_names is not None:
+            return tuple(layer_names)
+        if self._default_layer_names:
+            return self._default_layer_names
+        return tuple(
+            layer.name
+            for layer in self._model.layers
+            if layer.__class__.__name__ != "InputLayer" and hasattr(layer, "output")
+        )
+
+    def _get_capture_model(self, layer_names: tuple[str, ...]) -> Any | None:
+        if layer_names in self._capture_model_cache:
+            return self._capture_model_cache[layer_names]
+        try:
+            inputs = self._model.inputs
+            if not inputs:
+                self._capture_model_cache[layer_names] = None
+                return None
+            outputs = [self._model.get_layer(name).output for name in layer_names]
+            capture_model = self._tf.keras.Model(inputs=inputs, outputs=outputs)
+        except (AttributeError, ValueError):
+            capture_model = None
+        self._capture_model_cache[layer_names] = capture_model
+        return capture_model
 
 
 def quantize_array(
@@ -377,8 +765,8 @@ def quantize_array(
 def compare_ir_graphs(
     fp32_ir: Graph | None,
     quantized_ir: Graph | None,
-) -> dict[str, object]:
-    violations: list[dict[str, object]] = []
+) -> IRComparisonReport:
+    violations: list[Violation] = []
     if fp32_ir is None or quantized_ir is None:
         return {
             "pass": True,
@@ -476,9 +864,9 @@ def run_numerical_parity_test(
     quantized_model: Any,
     dataset: Iterable[Any],
     config: NumericalParityConfig | Mapping[str, object] | None = None,
-) -> dict[str, object]:
+) -> NumericalParityResult:
     resolved_config = NumericalParityConfig.from_input(config)
-    violations: list[dict[str, object]] = []
+    violations: list[Violation] = []
     output_accumulators: dict[str, _MetricAccumulator] = {}
     layer_accumulators: dict[str, _MetricAccumulator] = {}
     global_accumulator = _MetricAccumulator(
@@ -486,10 +874,10 @@ def run_numerical_parity_test(
         relative_error_epsilon=resolved_config.relative_error_epsilon,
         histogram_bins=resolved_config.histogram_bins,
     )
-    top_k_heap: list[tuple[float, int, dict[str, object]]] = []
+    top_k_heap: list[tuple[float, int, WorstSample]] = []
     failing_samples: set[int] = set()
     failing_layers: set[str] = set()
-    quantization_reports: list[dict[str, object]] = []
+    quantization_reports: list[SampleQuantizationReport] = []
     sample_count = 0
 
     ir_report = compare_ir_graphs(
@@ -553,13 +941,19 @@ def run_numerical_parity_test(
             quantization_report = _consume_quantization_report(quantized_model)
             if quantization_report:
                 quantization_reports.append(
-                    {"sample_index": sample_index, **quantization_report}
+                    {
+                        "sample_index": sample_index,
+                        "total_clipped_values": quantization_report[
+                            "total_clipped_values"
+                        ],
+                        "layers": quantization_report["layers"],
+                    }
                 )
 
             if sample_failures:
                 failing_samples.add(sample_index)
 
-            sample_entry = {
+            sample_entry: WorstSample = {
                 "sample_index": sample_index,
                 "score": sample_score,
                 "num_failures": sample_failures,
@@ -586,10 +980,10 @@ def run_numerical_parity_test(
     if layer_metrics:
         worst_layer = max(
             layer_metrics.items(),
-            key=lambda item: float(item[1].get(resolved_config.ranking_metric, 0.0)),
+            key=lambda item: _metric_float(item[1], resolved_config.ranking_metric),
         )[0]
 
-    diagnostics: dict[str, object] = {
+    diagnostics: DiagnosticsReport = {
         "top_k_worst_samples": [
             item
             for _score, _sample_index, item in sorted(
@@ -613,12 +1007,14 @@ def run_numerical_parity_test(
         ranking_metric=resolved_config.ranking_metric,
     )
 
+    metrics: MetricsReport = {
+        "global": global_metrics,
+        "outputs": output_metrics,
+        "layers": layer_metrics,
+    }
+
     return {
-        "metrics": {
-            "global": global_metrics,
-            "outputs": output_metrics,
-            "layers": layer_metrics,
-        },
+        "metrics": metrics,
         "pass": pass_flag,
         "violations": violations,
         "summary": summary,
@@ -635,7 +1031,7 @@ def _compare_scope_maps(
     config: NumericalParityConfig,
     scope: str,
     sample_index: int,
-    violations: list[dict[str, object]],
+    violations: list[Violation],
     failing_layers: set[str],
     current_score: float,
     current_failures: int,
@@ -703,7 +1099,7 @@ def _compare_scope_maps(
                 failing_layers.add(name)
             continue
         current_score = max(
-            current_score, float(sample_metrics.get(config.ranking_metric, 0.0))
+            current_score, _metric_float(sample_metrics, config.ranking_metric)
         )
 
         if config.fail_on_nonfinite and int(sample_metrics["nonfinite_count"]) > 0:
@@ -723,7 +1119,7 @@ def _compare_scope_maps(
                 failing_layers.add(name)
 
         for metric_name, threshold in config.thresholds.items():
-            actual_value = float(sample_metrics.get(metric_name, 0.0))
+            actual_value = _metric_float(sample_metrics, metric_name)
             if actual_value > threshold:
                 violations.append(
                     {
@@ -752,6 +1148,18 @@ def _run_model_with_optional_layer_capture(
     model_kwargs: dict[str, Any],
     config: NumericalParityConfig,
 ) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
+    parity_forward = getattr(model, "parity_forward", None)
+    if callable(parity_forward):
+        return cast(
+            tuple[dict[str, np.ndarray], dict[str, np.ndarray]],
+            parity_forward(
+                *model_args,
+                capture_layers=config.capture_layers,
+                layer_names=config.layer_names,
+                **model_kwargs,
+            ),
+        )
+
     capture_layers = config.capture_layers and _supports_torch_layer_capture(model)
     if not capture_layers:
         return _normalize_output_structure(model(*model_args, **model_kwargs)), {}
@@ -845,17 +1253,16 @@ def _build_summary(
     worst_layer: str | None,
     ranking_metric: str,
 ) -> str:
+    ranking_value = _metric_float(global_metrics, ranking_metric)
     if pass_flag:
         return (
             f"Numerical parity passed across {sample_count} sample(s); "
-            "global "
-            f"{ranking_metric}={float(global_metrics.get(ranking_metric, 0.0)):.6g}."
+            f"global {ranking_metric}={ranking_value:.6g}."
         )
 
     return (
         f"Numerical parity failed with {len(violations)} violation(s) across "
-        f"{sample_count} sample(s); global {ranking_metric}="
-        f"{float(global_metrics.get(ranking_metric, 0.0)):.6g}, "
+        f"{sample_count} sample(s); global {ranking_metric}={ranking_value:.6g}, "
         f"highest deviation layer={worst_layer or 'n/a'}."
     )
 
@@ -870,9 +1277,10 @@ def _compute_metric_values(
     element_count: int,
     max_error: float,
     nonfinite_count: int,
-) -> dict[str, float | int]:
+) -> MetricSummary:
+    metrics: MetricSummary
     if element_count <= 0:
-        return {
+        metrics = {
             "mae": 0.0,
             "mse": 0.0,
             "max_error": 0.0,
@@ -880,6 +1288,7 @@ def _compute_metric_values(
             "sqnr": math.inf,
             "nonfinite_count": nonfinite_count,
         }
+        return metrics
 
     if noise_sq_sum == 0.0:
         sqnr = math.inf
@@ -888,7 +1297,7 @@ def _compute_metric_values(
     else:
         sqnr = 10.0 * math.log10(signal_sq_sum / noise_sq_sum)
 
-    return {
+    metrics = {
         "mae": abs_error_sum / element_count,
         "mse": sq_error_sum / element_count,
         "max_error": max_error,
@@ -896,10 +1305,34 @@ def _compute_metric_values(
         "sqnr": sqnr,
         "nonfinite_count": nonfinite_count,
     }
+    return metrics
+
+
+def _resolve_onnx_session(session_or_model: object) -> _ONNXSessionLike:
+    if hasattr(session_or_model, "run") and hasattr(session_or_model, "get_inputs"):
+        return cast(_ONNXSessionLike, session_or_model)
+    if isinstance(session_or_model, str) or hasattr(session_or_model, "__fspath__"):
+        try:
+            ort = importlib.import_module("onnxruntime")
+        except ImportError as exc:  # pragma: no cover
+            raise ImportError(
+                "ONNXRuntimeParityAdapter requires onnxruntime when given a model path."
+            ) from exc
+        return cast(_ONNXSessionLike, ort.InferenceSession(session_or_model))
+    raise TypeError(
+        "session_or_model must be an ONNX Runtime session or a path to an ONNX model"
+    )
 
 
 def _round_half_away_from_zero(values: np.ndarray) -> np.ndarray:
     return np.where(values >= 0, np.floor(values + 0.5), np.ceil(values - 0.5))
+
+
+def _metric_float(metrics: Mapping[str, object], key: str) -> float:
+    value = metrics.get(key, 0.0)
+    if isinstance(value, int | float):
+        return float(value)
+    return 0.0
 
 
 def _resolve_integer_quant_params(
@@ -943,21 +1376,21 @@ def _quantize_argument_mapping(
 
 def _quantize_value_like(value: Any, spec: QuantizationSpec) -> tuple[Any, int]:
     if isinstance(value, tuple):
-        quantized_items = []
+        quantized_tuple_items: list[Any] = []
         total_clipped = 0
         for item in value:
             quantized_item, clipped = _quantize_value_like(item, spec)
-            quantized_items.append(quantized_item)
+            quantized_tuple_items.append(quantized_item)
             total_clipped += clipped
-        return tuple(quantized_items), total_clipped
+        return tuple(quantized_tuple_items), total_clipped
     if isinstance(value, list):
-        quantized_items = []
+        quantized_list_items: list[Any] = []
         total_clipped = 0
         for item in value:
             quantized_item, clipped = _quantize_value_like(item, spec)
-            quantized_items.append(quantized_item)
+            quantized_list_items.append(quantized_item)
             total_clipped += clipped
-        return quantized_items, total_clipped
+        return quantized_list_items, total_clipped
     if isinstance(value, Mapping):
         quantized_items: dict[str, Any] = {}
         total_clipped = 0
@@ -1023,10 +1456,10 @@ def _get_layer_capture_model(model: Any) -> Any:
     return getattr(model, "_parity_layer_model", model)
 
 
-def _consume_quantization_report(model: Any) -> dict[str, object] | None:
+def _consume_quantization_report(model: Any) -> SimulationQuantizationReport | None:
     reporter = getattr(model, "consume_last_quantization_report", None)
     if callable(reporter):
-        return dict(reporter())
+        return cast(SimulationQuantizationReport, reporter())
     return None
 
 
@@ -1052,6 +1485,8 @@ def _as_float_array(value: Any) -> np.ndarray:
 
 __all__ = [
     "NumericalParityConfig",
+    "ONNXRuntimeParityAdapter",
+    "TensorFlowKerasParityAdapter",
     "TorchQuantizedModelSimulator",
     "compare_ir_graphs",
     "quantize_array",

@@ -11,6 +11,8 @@ from .device import (
 )
 from .numerical_parity import (
     NumericalParityConfig,
+    ONNXRuntimeParityAdapter,
+    TensorFlowKerasParityAdapter,
     TorchQuantizedModelSimulator,
     compare_ir_graphs,
     run_numerical_parity_test,
@@ -27,6 +29,8 @@ __all__ = [
     "Policies",
     "DeviceRegistry",
     "NumericalParityConfig",
+    "ONNXRuntimeParityAdapter",
+    "TensorFlowKerasParityAdapter",
     "TorchQuantizedModelSimulator",
     "__version__",
     "compare_ir_graphs",
