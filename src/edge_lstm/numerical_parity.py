@@ -170,8 +170,8 @@ class NumericalParityConfig:
             fail_on_nonfinite=bool(config.get("fail_on_nonfinite", True)),
             enforce_eval_mode=bool(config.get("enforce_eval_mode", True)),
             compare_ir=bool(config.get("compare_ir", True)),
-            fp32_ir=cast(Graph | None, config.get("fp32_ir")),
-            quantized_ir=cast(Graph | None, config.get("quantized_ir")),
+            fp32_ir=cast("Graph | None", config.get("fp32_ir")),
+            quantized_ir=cast("Graph | None", config.get("quantized_ir")),
             ranking_metric=str(config.get("ranking_metric", "max_error")),
         )
 

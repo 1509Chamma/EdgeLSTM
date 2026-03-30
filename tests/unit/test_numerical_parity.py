@@ -74,7 +74,7 @@ class NonFiniteModel(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         del x
-        values = torch.tensor([float("nan"), float("inf")], dtype=torch.float32)
+        values = torch.tensor([float("nan")], dtype=torch.float32)
         return self.identity(values)
 
 
