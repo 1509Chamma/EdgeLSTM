@@ -49,6 +49,7 @@ def test_config_parsing_defaults():
     config = QuantizationConfig.from_dict(data)
     assert config.global_default.bit_width == 16
     assert config.global_default.scheme == QuantizationScheme.ASYMMETRIC
+    assert config.global_default.fixed_point is not None
     assert config.global_default.fixed_point.integer_bits == 8
 
 
@@ -96,7 +97,8 @@ def test_to_fixed_point_conversion():
 
 def test_compute_quant_params_symmetric():
     spec = QuantizationSpec(bit_width=8, scheme=QuantizationScheme.SYMMETRIC)
-    # Signed 8-bit range: -128 to 127. ONNX signed symmetric usually scales around qmax=127.
+    # Signed 8-bit range: -128 to 127.
+    # ONNX signed symmetric usually scales around qmax=127.
     data = [-1.0, 0.0, 2.0]
     # abs_max = 2.0. Scale = 2.0 / 127
     scale, zp = compute_quant_params(data, spec)

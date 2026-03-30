@@ -89,8 +89,8 @@ class QuantizationConfig:
                     fractional_bits=fp_data["fractional_bits"],
                 )
             elif default and default.fixed_point:
-                # If bit_width changed but fp_data didn't, we might have a mismatch.
-                # Simplified: only inherit if bit_width matches or is explicitly overridden.
+                # If bit_width changed but fp_data didn't, we might have a
+                # mismatch. Simplified: only inherit if bit_width matches.
                 fp_spec = default.fixed_point
 
             spec = QuantizationSpec(
@@ -146,7 +146,6 @@ def compute_quant_params(tensor_data: Any, spec: QuantizationSpec) -> tuple[floa
         # For symmetric signed, qmin = -2^(b-1), qmax = 2^(b-1)-1
         # But ONNX-style symmetric usually means symmetric around 0 in float space.
         # Scale = abs_max / (2^(b-1) - 1)
-        qmin_signed = -(2 ** (spec.bit_width - 1))
         qmax_signed = (2 ** (spec.bit_width - 1)) - 1
         scale = abs_max / qmax_signed if abs_max > 0 else 1.0
         return float(scale), 0
