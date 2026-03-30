@@ -79,7 +79,7 @@ class ONNXParser:
         values: dict[str, Value] = {}
         ops: dict[
             str, Any
-        ] = {}  # Using Any for now to avoid circular imports or strict typing before mapping
+        ] = {}  # Using Any here avoids tighter typing before operator mapping.
 
         initializers = {init.name for init in onnx_graph.initializer}
         graph_inputs = []
