@@ -2,11 +2,11 @@ import math
 from collections.abc import Mapping
 from typing import cast
 
+from edge_lstm.ir.graph import Graph
+from edge_lstm.ir.op import FPGACost, InvalidOperatorInstanceError, Operator
+from edge_lstm.ir.registry import OperatorRegistry
+from edge_lstm.ir.value import Value, ValueType
 from edgelstm.codegen.hls.generator import render_operator_hls
-from edgelstm.ir.graph import Graph
-from edgelstm.ir.op import FPGACost, InvalidOperatorInstanceError, Operator
-from edgelstm.ir.registry import OperatorRegistry
-from edgelstm.ir.value import Value, ValueType
 from edgelstm.ops.builtins import register_builtin_operators
 
 

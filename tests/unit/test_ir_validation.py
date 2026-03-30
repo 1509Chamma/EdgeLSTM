@@ -2,9 +2,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from edgelstm.ir.graph import Graph
-from edgelstm.ir.op import FPGACost, Operator
-from edgelstm.ir.validation import (
+from edge_lstm.ir.graph import Graph
+from edge_lstm.ir.op import FPGACost, Operator
+from edge_lstm.ir.validation import (
     GraphValidationError,
     IRValidationError,
     OperatorValidationError,
@@ -12,7 +12,7 @@ from edgelstm.ir.validation import (
     ValueValidationError,
     validate_ir,
 )
-from edgelstm.ir.value import Value, ValueType
+from edge_lstm.ir.value import Value, ValueType
 
 
 # Mocked Operator for testing

@@ -4,18 +4,18 @@ from typing import Any, cast
 
 import pytest
 
-from edgelstm.ir.op import (
+from edge_lstm.ir.op import (
     FPGACost,
     InvalidOperatorDefinitionError,
     Operator,
 )
-from edgelstm.ir.registry import (
+from edge_lstm.ir.registry import (
     DuplicateOperatorError,
     OperatorRegistry,
     UnknownOperatorError,
     get_default_registry,
 )
-from edgelstm.ir.value import Value
+from edge_lstm.ir.value import Value
 from edgelstm.ops.builtins import BUILTIN_OPERATOR_TYPES
 
 

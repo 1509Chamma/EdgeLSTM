@@ -1,8 +1,8 @@
 import pytest
 
-from edgelstm.ir.graph import Graph
-from edgelstm.ir.op import FPGACost, Operator
-from edgelstm.ir.value import Value, ValueType
+from edge_lstm.ir.graph import Graph
+from edge_lstm.ir.op import FPGACost, Operator
+from edge_lstm.ir.value import Value, ValueType
 from edgelstm.quantization_config import (
     FixedPointSpec,
     QuantizationConfig,
@@ -152,10 +152,14 @@ def test_apply_quantization_overrides():
     apply_quantization_config(graph, config)
 
     # v1 should have tensor override (16-bit)
-    assert graph.values["v1"].quant is not None, "v1.quant was not set by apply_quantization_config"
+    assert graph.values["v1"].quant is not None, (
+        "v1.quant was not set by apply_quantization_config"
+    )
     assert graph.values["v1"].quant["bit_width"] == 16
     # v2 produced by MockOp should have operator override (12-bit)
-    assert graph.values["v2"].quant is not None, "v2.quant was not set by apply_quantization_config"
+    assert graph.values["v2"].quant is not None, (
+        "v2.quant was not set by apply_quantization_config"
+    )
     assert graph.values["v2"].quant["bit_width"] == 12
 
 
@@ -186,5 +190,7 @@ def test_priority_tensor_over_operator():
     apply_quantization_config(graph, config)
 
     # v1 should be 12-bit, NOT 10-bit from operator
-    assert graph.values["v1"].quant is not None, "v1.quant was not set by apply_quantization_config"
+    assert graph.values["v1"].quant is not None, (
+        "v1.quant was not set by apply_quantization_config"
+    )
     assert graph.values["v1"].quant["bit_width"] == 12

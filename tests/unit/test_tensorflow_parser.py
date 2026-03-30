@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import tensorflow as tf
 
-from edgelstm.ir.graph import Graph
+from edge_lstm.ir.graph import Graph
 from edgelstm.parsers.tensorflow.parser import TensorFlowParser
 
 

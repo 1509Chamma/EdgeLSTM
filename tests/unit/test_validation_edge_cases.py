@@ -1,8 +1,8 @@
 import pytest
 
-from edgelstm.ir.graph import Graph
-from edgelstm.ir.op import FPGACost, Operator
-from edgelstm.ir.validation import (
+from edge_lstm.ir.graph import Graph
+from edge_lstm.ir.op import FPGACost, Operator
+from edge_lstm.ir.validation import (
     GraphValidationError,
     OperatorValidationError,
     ValueValidationError,
@@ -10,7 +10,7 @@ from edgelstm.ir.validation import (
     validate_operators,
     validate_values,
 )
-from edgelstm.ir.value import Value, ValueType
+from edge_lstm.ir.value import Value, ValueType
 
 
 class DummyOp(Operator):

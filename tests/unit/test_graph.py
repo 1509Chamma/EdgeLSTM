@@ -3,10 +3,10 @@ from typing import cast
 
 import pytest
 
-from edgelstm.ir.graph import Graph
-from edgelstm.ir.op import FPGACost, Operator
-from edgelstm.ir.registry import OperatorRegistry
-from edgelstm.ir.value import Value, ValueType
+from edge_lstm.ir.graph import Graph
+from edge_lstm.ir.op import FPGACost, Operator
+from edge_lstm.ir.registry import OperatorRegistry
+from edge_lstm.ir.value import Value, ValueType
 
 
 class PassThroughOperator(Operator):
