@@ -276,7 +276,7 @@ def test_all_nan_dataset_yields_empty() -> None:
 
 def test_partial_nan_values_pass_through() -> None:
     rng = np.random.default_rng(0)
-    dataset = []
+    dataset: list[np.ndarray] = []
     for _ in range(50):
         arr = rng.standard_normal(8).astype(np.float32)
         arr[0] = np.nan
@@ -359,7 +359,7 @@ def test_empty_dataset_stats() -> None:
 def test_stratified_temporal_segments_covered() -> None:
     segments = 5
     n_per_seg = 200
-    dataset = []
+    dataset: list[np.ndarray] = []
     for seg_idx in range(segments):
         mean_val = float(seg_idx * 10)
         for _ in range(n_per_seg):
