@@ -1,6 +1,6 @@
 """Compatibility wrapper for the older public IR validation module."""
 
-from edgelstm.ir.validation import (
+from edge_lstm.ir.validation import (
     GraphValidationError,
     IRValidationError,
     OperatorValidationError,

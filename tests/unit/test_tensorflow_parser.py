@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import tensorflow as tf
 
 from edge_lstm.ir.graph import Graph
-from edgelstm.parsers.tensorflow.parser import TensorFlowParser
+from edge_lstm.parsers.tensorflow.parser import TensorFlowParser
 
 
 def test_tensorflow_parser_init():

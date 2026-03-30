@@ -1,6 +1,6 @@
 """Compatibility wrapper for the older public IR operator module."""
 
-from edgelstm.ir.op import (
+from edge_lstm.ir.op import (
     FPGACost,
     InvalidOperatorDefinitionError,
     InvalidOperatorInstanceError,

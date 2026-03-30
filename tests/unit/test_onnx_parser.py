@@ -3,7 +3,7 @@ import unittest
 import onnx.helper as helper
 from onnx import TensorProto
 
-from edgelstm.parsers.onnx.parser import ONNXParser
+from edge_lstm.parsers.onnx.parser import ONNXParser
 
 
 class TestONNXParser(unittest.TestCase):

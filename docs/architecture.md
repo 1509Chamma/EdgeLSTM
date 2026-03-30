@@ -22,7 +22,7 @@ For new public IR-facing imports, prefer:
 - `edge_lstm.ir.value`
 - `edge_lstm.ir.registry`
 
-The current implementation still lives under `edgelstm.*`, and that namespace
+The current implementation still lives under `edge_lstm.*`, and that namespace
 remains supported internally. `edge_lstm.ir_graph` is kept as a compatibility
 alias for now.
 
@@ -44,7 +44,7 @@ multi-operator lowering, or board deployment.
 
 ## Package Map
 
-### `src/edgelstm/ir`
+### `src/edge_lstm/ir`
 
 The IR layer is the heart of the repo:
 
@@ -60,7 +60,7 @@ The IR layer is the heart of the repo:
 This layer is already useful for structural modelling and testing independent of
 any final backend.
 
-### `src/edgelstm/ops`
+### `src/edge_lstm/ops`
 
 The built-in operator library currently covers a practical primitive set:
 
@@ -75,7 +75,7 @@ The built-in operator library currently covers a practical primitive set:
 Each operator validates its inputs and outputs against the graph value
 environment and exposes a coarse FPGA cost heuristic.
 
-### `src/edgelstm/parsers`
+### `src/edge_lstm/parsers`
 
 Model ingestion currently works through ONNX:
 
@@ -88,7 +88,7 @@ Model ingestion currently works through ONNX:
 This keeps the ingestion stack narrow and reduces the amount of
 framework-specific lowering logic inside the repo.
 
-### `src/edgelstm/calibration`
+### `src/edge_lstm/calibration`
 
 The calibration package focuses on representative dataset selection and
 distributional checks for quantization workflows:
@@ -104,7 +104,7 @@ distributional checks for quantization workflows:
 This is a useful bridge between model-side data behaviour and later
 deployment-side quantization choices.
 
-### `src/edgelstm/codegen/hls`
+### `src/edge_lstm/codegen/hls`
 
 The HLS codegen layer is currently template-driven:
 
@@ -116,7 +116,7 @@ The HLS codegen layer is currently template-driven:
 Today this is operator-scoped code generation, not a full graph scheduler or
 backend flow.
 
-### `src/edgelstm/device`
+### `src/edge_lstm/device`
 
 The device layer provides structured board metadata:
 
@@ -144,7 +144,7 @@ The current design already exposes several useful seams:
 - Register custom operators with a dedicated `OperatorRegistry`
 - Ship operator-local HLS templates next to Python modules
 - Extend ONNX operator mappings in the parser
-- Add new sampling strategies under `edgelstm.calibration`
+- Add new sampling strategies under `edge_lstm.calibration`
 - Add new device presets without changing Python code
 
 ## Current Boundaries

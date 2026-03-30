@@ -16,7 +16,7 @@ from edge_lstm.ir.registry import (
     get_default_registry,
 )
 from edge_lstm.ir.value import Value
-from edgelstm.ops.builtins import BUILTIN_OPERATOR_TYPES
+from edge_lstm.ops.builtins import BUILTIN_OPERATOR_TYPES
 
 
 class ScaleOperator(Operator):

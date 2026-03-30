@@ -4,11 +4,11 @@ import os
 import tempfile
 from typing import TYPE_CHECKING, Any
 
-from edgelstm.ir.graph import Graph
-from edgelstm.parsers.onnx.parser import ONNXParser
+from edge_lstm.ir.graph import Graph
+from edge_lstm.parsers.onnx.parser import ONNXParser
 
 if TYPE_CHECKING:
-    from edgelstm.ir.registry import OperatorRegistry
+    from edge_lstm.ir.registry import OperatorRegistry
 
 
 class TensorFlowParser:

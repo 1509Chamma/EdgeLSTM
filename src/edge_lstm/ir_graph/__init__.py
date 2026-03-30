@@ -1,6 +1,6 @@
 """Compatibility alias for the older public ``edge_lstm.ir_graph`` namespace."""
 
-from edgelstm.ir import (
+from edge_lstm.ir import (
     DuplicateOperatorError,
     FPGACost,
     Graph,
@@ -15,7 +15,7 @@ from edgelstm.ir import (
     ValueType,
     get_default_registry,
 )
-from edgelstm.ir.validation import (
+from edge_lstm.ir.validation import (
     GraphValidationError,
     IRValidationError,
     OperatorValidationError,

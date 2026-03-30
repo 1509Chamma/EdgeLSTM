@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING, Any
 import onnx
 import onnx.numpy_helper
 
-from edgelstm.ir.graph import Graph
-from edgelstm.ir.value import Value, ValueType
+from edge_lstm.ir.graph import Graph
+from edge_lstm.ir.value import Value, ValueType
 
 if TYPE_CHECKING:
-    from edgelstm.ir.registry import OperatorRegistry
+    from edge_lstm.ir.registry import OperatorRegistry
 
 
 class ONNXParser:

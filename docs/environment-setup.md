@@ -65,13 +65,13 @@ installed.
 Build:
 
 ```bash
-docker build -t edgelstm .
+docker build -t edge_lstm .
 ```
 
 Run:
 
 ```bash
-docker run --rm -it -v "$PWD:/repo" edgelstm bash
+docker run --rm -it -v "$PWD:/repo" edge_lstm bash
 ```
 
 ## Notes

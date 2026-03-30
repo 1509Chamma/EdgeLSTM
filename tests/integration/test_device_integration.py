@@ -1,4 +1,4 @@
-from edgelstm.device import FPGADevice, Memory, Policies, Resources
+from edge_lstm.device import FPGADevice, Memory, Policies, Resources
 
 
 class TestFPGADeviceIntegration:

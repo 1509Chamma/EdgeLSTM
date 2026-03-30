@@ -2,12 +2,12 @@ import math
 from collections.abc import Mapping
 from typing import cast
 
+from edge_lstm.codegen.hls.generator import render_operator_hls
 from edge_lstm.ir.graph import Graph
 from edge_lstm.ir.op import FPGACost, InvalidOperatorInstanceError, Operator
 from edge_lstm.ir.registry import OperatorRegistry
 from edge_lstm.ir.value import Value, ValueType
-from edgelstm.codegen.hls.generator import render_operator_hls
-from edgelstm.ops.builtins import register_builtin_operators
+from edge_lstm.ops.builtins import register_builtin_operators
 
 
 def make_tensor(value_id, shape, axes=None, dtype="float32"):

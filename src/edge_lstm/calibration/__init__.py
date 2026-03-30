@@ -1,5 +1,5 @@
 """
-edgelstm.calibration
+edge_lstm.calibration
 ====================
 
 Representative dataset generation utilities for quantization calibration.

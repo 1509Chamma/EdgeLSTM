@@ -5,15 +5,15 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from edge_lstm.ir.op import FPGACost, Operator
-from edge_lstm.ir.value import Value, ValueType
-from edgelstm.codegen.hls.generator import (
+from edge_lstm.codegen.hls.generator import (
     HLSTemplateNotFoundError,
     HLSTemplateRenderError,
     render_operator_hls,
     resolve_hls_template_path,
 )
-from edgelstm.ops.builtins import Add
+from edge_lstm.ir.op import FPGACost, Operator
+from edge_lstm.ir.value import Value, ValueType
+from edge_lstm.ops.builtins import Add
 
 
 def make_tensor(value_id, shape, axes=None, dtype="float32"):
@@ -185,7 +185,7 @@ def test_render_operator_hls_malformed_syntax():
     with (
         pytest.raises(HLSTemplateRenderError, match="invalid for operator"),
         patch(
-            "edgelstm.codegen.hls.generator.resolve_hls_template_path",
+            "edge_lstm.codegen.hls.generator.resolve_hls_template_path",
             return_value=mock_path_obj,
         ),
     ):
@@ -212,7 +212,7 @@ def test_render_operator_hls_empty_context():
     mock_path_obj.read_text.return_value = "No variables here"
 
     with patch(
-        "edgelstm.codegen.hls.generator.resolve_hls_template_path",
+        "edge_lstm.codegen.hls.generator.resolve_hls_template_path",
         return_value=mock_path_obj,
     ):
         res = render_operator_hls(EmptyCtxOp(op_id="empty1", inputs=[], outputs=[]), {})

@@ -1,6 +1,6 @@
 """Compatibility wrapper for the older public IR registry module."""
 
-from edgelstm.ir.registry import (
+from edge_lstm.ir.registry import (
     DuplicateOperatorError,
     OperatorRegistry,
     OperatorRegistryError,

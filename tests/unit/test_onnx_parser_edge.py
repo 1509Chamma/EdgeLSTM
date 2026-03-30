@@ -2,7 +2,7 @@ import onnx.helper as helper
 import pytest
 from onnx import AttributeProto, TensorProto
 
-from edgelstm.parsers.onnx.parser import ONNXParser
+from edge_lstm.parsers.onnx.parser import ONNXParser
 
 
 @pytest.fixture

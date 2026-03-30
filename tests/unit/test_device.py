@@ -1,6 +1,6 @@
 import pytest
 
-from edgelstm.device import (
+from edge_lstm.device import (
     IO,
     Capabilities,
     FPGADevice,

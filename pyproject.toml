@@ -11,7 +11,7 @@ select = ["E", "F", "I", "B", "UP"]
 ignore = []
 
 [tool.ruff.lint.isort]
-known-first-party = ["edge_lstm", "edgelstm"]
+known-first-party = ["edge_lstm"]
 
 [tool.pyrefly]
 python-version = "3.12"

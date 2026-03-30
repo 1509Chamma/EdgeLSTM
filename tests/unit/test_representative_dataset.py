@@ -7,14 +7,14 @@ from typing import Any
 import numpy as np
 import pytest
 
-from edgelstm.calibration import (
+from edge_lstm.calibration import (
     compare_stats,
     compute_stats,
     create_representative_dataset,
     get_strategy,
     kl_divergence,
 )
-from edgelstm.quantization_config import (
+from edge_lstm.quantization_config import (
     QuantizationScheme,
     QuantizationSpec,
     compute_quant_params,
