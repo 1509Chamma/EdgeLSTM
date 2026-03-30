@@ -3,7 +3,7 @@ import pytest
 from edge_lstm.ir.graph import Graph
 from edge_lstm.ir.op import FPGACost, Operator
 from edge_lstm.ir.value import Value, ValueType
-from edgelstm.quantization_config import (
+from edge_lstm.quantization_config import (
     FixedPointSpec,
     QuantizationConfig,
     QuantizationScheme,

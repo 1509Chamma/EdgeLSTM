@@ -1,13 +1,6 @@
-"""
-Public compatibility namespace for EdgeLSTM.
+"""Canonical public package namespace for EdgeLSTM."""
 
-The repository currently keeps its implementation under ``src/edgelstm`` on
-disk, but consumers should import from package namespaces rather than from the
-filesystem layout. New public-facing aliases can live under ``edge_lstm`` while
-the existing ``edgelstm`` package remains supported internally.
-"""
-
-from edgelstm import (
+from .device import (
     IO,
     Capabilities,
     DeviceRegistry,
@@ -15,8 +8,17 @@ from edgelstm import (
     Memory,
     Policies,
     Resources,
-    __version__,
 )
+from .numerical_parity import (
+    NumericalParityConfig,
+    ONNXRuntimeParityAdapter,
+    TensorFlowKerasParityAdapter,
+    TorchQuantizedModelSimulator,
+    compare_ir_graphs,
+    run_numerical_parity_test,
+)
+
+__version__ = "0.1.0"
 
 __all__ = [
     "FPGADevice",
@@ -26,5 +28,11 @@ __all__ = [
     "Capabilities",
     "Policies",
     "DeviceRegistry",
+    "NumericalParityConfig",
+    "ONNXRuntimeParityAdapter",
+    "TensorFlowKerasParityAdapter",
+    "TorchQuantizedModelSimulator",
     "__version__",
+    "compare_ir_graphs",
+    "run_numerical_parity_test",
 ]

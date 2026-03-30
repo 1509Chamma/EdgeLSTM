@@ -38,7 +38,7 @@ What is still future work:
 
 ```text
 .
-|-- src/edgelstm/
+|-- src/edge_lstm/
 |   |-- calibration/     Representative dataset sampling and statistics
 |   |-- codegen/hls/     Template resolution and HLS rendering
 |   |-- device/          FPGA device schemas and preset registry

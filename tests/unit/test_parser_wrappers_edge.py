@@ -6,8 +6,8 @@ import torch
 import torch.nn as nn
 
 from edge_lstm.ir.graph import Graph
-from edgelstm.parsers.pytorch.parser import PyTorchParser
-from edgelstm.parsers.tensorflow.parser import TensorFlowParser
+from edge_lstm.parsers.pytorch.parser import PyTorchParser
+from edge_lstm.parsers.tensorflow.parser import TensorFlowParser
 
 # PyTorch parser tests
 

@@ -4,12 +4,12 @@ from pathlib import Path
 from string import Template
 from typing import TYPE_CHECKING
 
-from edgelstm.ir.op import Operator, OperatorError
+from edge_lstm.ir.op import Operator, OperatorError
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    from edgelstm.ir.value import Value
+    from edge_lstm.ir.value import Value
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[4]

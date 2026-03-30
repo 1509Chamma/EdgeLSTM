@@ -1,7 +1,7 @@
 import pytest
 
 from edge_lstm.ir.value import Value, ValueType
-from edgelstm.ops.builtins import (
+from edge_lstm.ops.builtins import (
     LSTM,
     Add,
     Concat,

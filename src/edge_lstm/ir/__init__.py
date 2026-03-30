@@ -1,57 +1,32 @@
-"""Preferred public IR namespace for EdgeLSTM."""
-
-from edgelstm.ir import (
-    DuplicateOperatorError,
+from .graph import Graph
+from .op import (
     FPGACost,
-    Graph,
     InvalidOperatorDefinitionError,
     InvalidOperatorInstanceError,
     Operator,
     OperatorError,
+)
+from .registry import (
+    DuplicateOperatorError,
     OperatorRegistry,
     OperatorRegistryError,
     UnknownOperatorError,
-    Value,
-    ValueType,
     get_default_registry,
 )
-from edgelstm.ir.validation import (
-    GraphValidationError,
-    IRValidationError,
-    OperatorValidationError,
-    TopologyValidationError,
-    ValueValidationError,
-    validate_fpga_constraints,
-    validate_graph,
-    validate_ir,
-    validate_operators,
-    validate_topology,
-    validate_values,
-)
+from .value import Value, ValueType
 
 __all__ = [
     "DuplicateOperatorError",
     "FPGACost",
     "Graph",
-    "GraphValidationError",
-    "IRValidationError",
     "InvalidOperatorDefinitionError",
     "InvalidOperatorInstanceError",
     "Operator",
     "OperatorError",
-    "OperatorValidationError",
     "OperatorRegistry",
     "OperatorRegistryError",
-    "TopologyValidationError",
     "UnknownOperatorError",
     "Value",
     "ValueType",
-    "ValueValidationError",
     "get_default_registry",
-    "validate_fpga_constraints",
-    "validate_graph",
-    "validate_ir",
-    "validate_operators",
-    "validate_topology",
-    "validate_values",
 ]

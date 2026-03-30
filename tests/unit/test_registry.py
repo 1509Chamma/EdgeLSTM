@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from edgelstm.device import DeviceRegistry, FPGADevice
+from edge_lstm.device import DeviceRegistry, FPGADevice
 
 
 class TestDeviceRegistry:

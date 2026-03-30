@@ -14,7 +14,7 @@ deployment calibration pipeline, but it provides the core building blocks.
 
 ## Public API
 
-The main entry points live under `edgelstm.calibration`:
+The main entry points live under `edge_lstm.calibration`:
 
 - `create_representative_dataset(...)`
 - `DatasetStats`
@@ -135,7 +135,7 @@ These metrics are helpful when deciding whether a sampled calibration subset is
 ```python
 import numpy as np
 
-from edgelstm.calibration import (
+from edge_lstm.calibration import (
     compare_stats,
     compute_stats,
     create_representative_dataset,
