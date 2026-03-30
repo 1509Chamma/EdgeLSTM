@@ -1,3 +1,4 @@
+from __future__ import annotations
 from enum import Enum
 
 
@@ -17,7 +18,8 @@ class Value:
         shape (List[int]): The shape of the value if it is a tensor
         axes (List[str]): The names of the axes corresponding to the shape dimensions
         layout (Optional[str]): The memory layout of the tensor (e.g., "NCHW", "NHWC")
-        quant (Optional[Dict[str, str]]): Quantization parameters if applicable
+        quant (Optional[Dict[str, Any]]): Quantization parameters
+            if applicable.
         producer_op_id (Optional[str]): The ID of the operation that produces this value
     """
 
@@ -29,7 +31,7 @@ class Value:
         shape: list[int],
         axes: list[str],
         layout: str | None = None,
-        quant: dict[str, str] | None = None,
+        quant: dict[str, float | int | str | None] | None = None,
         producer_op_id: str | None = None,
     ) -> None:
         self.value_id = value_id

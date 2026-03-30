@@ -77,13 +77,11 @@ class ONNXParser:
         """Convert an in-memory ONNX ModelProto to an IR Graph."""
         onnx_graph = model.graph
         values: dict[str, Value] = {}
-        ops: dict[str, Any] = (
-            {}
-        )  # Using Any for now to avoid circular imports or strict typing before mapping
+        ops: dict[
+            str, Any
+        ] = {}  # Using Any for now to avoid circular imports or strict typing before mapping
 
-        initializers = {
-            init.name for init in onnx_graph.initializer
-        }
+        initializers = {init.name for init in onnx_graph.initializer}
         graph_inputs = []
         for inp in onnx_graph.input:
             name = inp.name
