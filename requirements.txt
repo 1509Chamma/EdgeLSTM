@@ -45,7 +45,7 @@ pytokens==0.4.1
 requests==2.33.0
 rich==14.3.3
 ruff==0.15.10
-setuptools==81.0.0
+setuptools==82.0.1
 six==1.17.0
 sympy==1.14.0
 tensorflow==2.21.0
