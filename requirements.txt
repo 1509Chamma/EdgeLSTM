@@ -28,7 +28,7 @@ namex==0.1.0
 networkx==3.6.1
 numpy==2.5.2
 onnx==1.22.0
-onnx-ir==0.2.1
+onnx-ir==1.0.0
 onnxscript==0.7.1
 opt_einsum==3.4.0
 optree==0.19.1
